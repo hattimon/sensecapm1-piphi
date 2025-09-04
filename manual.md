@@ -1,6 +1,6 @@
 # Manual Installation Guide (English)
 
-Based on [https://github.com/hattimon/sensecapm1-ubuntu-piphi/tree/main](https://github.com/hattimon/sensecapm1-ubuntu-piphi/tree/main).
+Based on [https://github.com/hattimon/sensecapm1-piphi/tree/main](https://github.com/hattimon/sensecapm1-piphi/tree/main).
 
 ## Prerequisites
 - Ensure `wget` is installed on the host: `apt-get install -y wget`
@@ -181,7 +181,7 @@ To ensure the Docker daemon and all containers (`piphi-network-image`, `db`, `wa
 
 # Podręcznik Instalacji Ręcznej (Polski)
 
-Oparte na [https://github.com/hattimon/sensecapm1-ubuntu-piphi/tree/main](https://github.com/hattimon/sensecapm1-ubuntu-piphi/tree/main).
+Oparte na [https://github.com/hattimon/sensecapm1-piphi/tree/main](https://github.com/hattimon/sensecapm1-piphi/tree/main).
 
 ## Wymagania wstępne
 - Upewnij się, że `wget` jest zainstalowany na hoście: `apt-get install -y wget`
