@@ -4,7 +4,7 @@
 # Version: 2.18
 # Author: hattimon (with assistance from Grok, xAI)
 # Date: September 02, 2025, 09:30 PM CEST
-# Last Updated: September 04, 2025, 07:36 PM CEST
+# Last Updated: September 04, 2025, 08:00 PM CEST
 # Description: Installs PiPhi Network alongside Helium Miner, with GPS dongle (U-Blox 7) support and automatic startup on reboot, ensuring PiPhi panel availability.
 # Requirements: balenaOS (tested on 2.80.3+rev1), USB GPS dongle, SSH access as root.
 
@@ -334,7 +334,7 @@ EOL
 
     # Run Ubuntu container with minimal startup command (on host)
     msg "running_container"
-    balena run -d --privileged -v /mnt/data/piphi-network:/piphi-network -v /var/run/balena-engine.sock:/var/run/docker.sock -p 31415:31415 -p 5432:5432 -p 3000:3000 --cpus="2.0" --memory="2g" --name ubuntu-piphi --restart unless-stopped ubuntu:20.04 /bin/bash -c "while true; do sleep 3600; done" || {
+    balena run -d --privileged -v /mnt/data/piphi-network:/piphi-network -p 31415:31415 -p 5432:5432 -p 3000:3000 --cpus="2.0" --memory="2g" --name ubuntu-piphi --restart unless-stopped ubuntu:20.04 /bin/bash -c "while true; do sleep 3600; done" || {
         msg "run_error"
         balena logs ubuntu-piphi
         exit 1
@@ -438,6 +438,8 @@ cd /piphi-network || exit 1
 docker compose pull
 docker compose up -d
 echo \"PiPhi services started.\"
+# Keep container running
+tail -f /dev/null
 EOL" || {
         msg "run_error"
         balena logs ubuntu-piphi
@@ -576,7 +578,6 @@ msg "separator"
 if [ "$LANGUAGE" = "pl" ]; then
     echo -e "Skrypt instalacyjny PiPhi Network na SenseCAP M1 z balenaOS"
     echo -e "Wersja: 2.18 | Data: 02 września 2025, 21:30 CEST"
-    echo -e "Ostatnia aktualizacja: 04 września 2025, 19:36 CEST"
     echo -e "================================================================"
     echo -e "1 - Instalacja PiPhi Network z obsługą GPS i automatycznym startem"
     echo -e "2 - Wyjście"
@@ -584,7 +585,6 @@ if [ "$LANGUAGE" = "pl" ]; then
 else
     echo -e "PiPhi Network Installation Script for SenseCAP M1 with balenaOS"
     echo -e "Version: 2.18 | Date: September 02, 2025, 09:30 PM CEST"
-    echo -e "Last Updated: September 04, 2025, 07:36 PM CEST"
     echo -e "================================================================"
     echo -e "1 - Install PiPhi Network with GPS support and automatic startup"
     echo -e "2 - Exit"
