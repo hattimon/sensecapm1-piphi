@@ -137,6 +137,10 @@ To ensure the Docker daemon and all containers (`piphi-network-image`, `db`, `wa
      ```
      apt-get install -y cron
      ```
+   - Install nano editor:
+     ```
+     apt-get install -y nano
+     ```
 
 2. **Configure cron for Docker Daemon and Services**:
    - Edit the crontab file:
@@ -317,6 +321,10 @@ Aby zapewnić, że demon Dockera oraz wszystkie kontenery (`piphi-network-image`
    - Jeśli nie jest zainstalowany, zainstaluj:
      ```
      apt-get install -y cron
+     ```
+   - Zainstaluj edytor nano:
+     ```
+     apt-get install -y nano
      ```
 
 2. **Skonfiguruj cron dla demona Dockera i usług**:
