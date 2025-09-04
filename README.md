@@ -55,9 +55,9 @@ This repository contains the `install-piphi.sh` script to install and configure 
 
 ### Step 4: Handle Potential Crash
 The script may crash during the `docker pull` step for the Docker daemon due to network issues or resource constraints. If this happens:
-1. **Restart the Device**:
+1. **Restart the Device on balena host**:
    ```
-   balena reboot
+   reboot
    ```
 2. **Complete Installation Manually** (refer to `manual.md`):
    - Enter the container:
@@ -131,9 +131,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Krok 4: Obsługa Potencjalnego Crashu
 Skrypt może crashować podczas kroku `docker pull` dla demona Dockera z powodu problemów z siecią lub ograniczeń zasobów. Jeśli tak się stanie:
-1. **Restart Urządzenia**:
+1. **Restart Urządzenia na hoście balena**:
    ```
-   balena reboot
+   reboot
    ```
 2. **Dokończ Instalację Ręcznie** (patrz `manual.md`):
    - Wejdź do kontenera:
