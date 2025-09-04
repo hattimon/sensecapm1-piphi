@@ -27,11 +27,6 @@ This repository contains the `install-piphi.sh` script to install and configure 
 ### Step 1: Prepare the Device
 1. **Connect the GPS Dongle**: Plug in the U-Blox 7 GPS dongle to a USB port on the SenseCAP M1.
 2. **Access the Device**: SSH into the device as root (e.g., `ssh root@<device-ip>`).
-3. **Install wget** (if not already installed):
-   ```
-   apt-get update
-   apt-get install -y wget
-   ```
 
 ### Step 2: Download and Run the Installation Script
 1. **Download the Script**:
@@ -108,11 +103,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Krok 1: Przygotowanie Urządzenia
 1. **Podłącz Dongle GPS**: Włóż dongle GPS U-Blox 7 do portu USB SenseCAP M1.
 2. **Uzyskaj Dostęp do Urządzenia**: Połącz się przez SSH jako root (np. `ssh root@<adres-ip-urządzenia>`).
-3. **Zainstaluj wget** (jeśli nie jest zainstalowany):
-   ```
-   apt-get update
-   apt-get install -y wget
-   ```
 
 ## Krok 2: Pobierz i Uruchom Skrypt Instalacyjny
 1. **Pobierz Skrypt**:
