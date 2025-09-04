@@ -122,6 +122,8 @@ cgps -s
 #### Exit and restart the container:
 ```
 exit
+```
+```
 balena restart ubuntu-piphi
 ```
 
@@ -307,6 +309,8 @@ cgps -s
 #### Wyjdź i zrestartuj kontener:
 ```
 exit
+```
+```
 balena restart ubuntu-piphi
 ```
 
