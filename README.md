@@ -15,6 +15,14 @@ The installation script prepares the environment and automatically modifies `doc
 The script **does not automatically start PiPhi services**.  
 PiPhi containers are started manually using `docker compose`.
 
+## ⚡ Automatic Startup of the PiPhi Panel
+
+To enable fully automatic startup of the **PiPhi** panel, you need to install the **Watchdog** ⏱️.  
+The Watchdog should be installed on another local or remote device 💻 with SSH access 🔑 to the **SenseCap** device.  
+Once the Watchdog is configured correctly, the PiPhi service will start automatically 🚀 without any manual intervention.  
+
+📌 Installation instructions for the Watchdog are available in the dedicated repository: [PiPhi Watchdog](https://github.com/hattimon/sensecapm1-piphi/tree/main/piphi-watchdog)
+
 ---
 
 # 🌐 Language / Język
@@ -417,6 +425,14 @@ Skrypt:
 - utworzy helper `/piphi-network/start-piphi.sh`
 
 Skrypt **nie uruchamia usług PiPhi automatycznie**.
+
+## ⚡ Automatyczny Start Panelu PiPhi
+
+Aby uruchomić panel **PiPhi** całkowicie automatycznie, należy zainstalować **Watchdoga** ⏱️.  
+Watchdog powinien być zainstalowany na innym lokalnym lub zdalnym urządzeniu 💻, które posiada dostęp SSH 🔑 do urządzenia **SenseCapa**.  
+Po poprawnej konfiguracji Watchdoga, serwis PiPhi będzie startować automatycznie 🚀 bez potrzeby ręcznej interwencji.  
+
+📌 Instrukcje instalacji Watchdoga znajdują się w dedykowanym repozytorium: [PiPhi Watchdog](https://github.com/hattimon/sensecapm1-piphi/tree/main/piphi-watchdog)
 
 ---
 
