@@ -34,10 +34,10 @@ flowchart LR
     SC -->|balenaEngine| UB["ubuntu-piphi container"]
     UB -->|Docker| PS["PiPhi stack"]
 ```
-- **Raspberry Pi** – host watchdoga i `systemd --user` timer  
-- **SenseCAP M1** – urządzenie z balenaOS i PiPhi w kontenerze  
-- **ubuntu-piphi** – kontener przygotowany przez skrypt instalacyjny  
-- **PiPhi stack** – baza danych, Grafana, aplikacja PiPhi, Watchtower  
+- **Raspberry Pi** – host for the watchdog and `systemd --user` timer / host watchdoga i `systemd --user` timer  
+- **SenseCAP M1** – device running balenaOS and PiPhi in a container / urządzenie z balenaOS i PiPhi w kontenerze    
+- **ubuntu-piphi** – container prepared by the installer script / kontener przygotowany przez skrypt instalacyjny  
+- **PiPhi stack** – database, Grafana, PiPhi app, Watchtower / baza danych, Grafana, aplikacja PiPhi, Watchtower  
 
 ---
 
