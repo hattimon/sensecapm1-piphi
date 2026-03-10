@@ -1,8 +1,11 @@
 # 🛰️ PiPhi Watchdog for SenseCAP M1
 
-[![GitHub Release](https://img.shields.io/github/v/release/hattimon/sensecapm1-piphi?label=release)](https://github.com/hattimon/sensecapm1-piphi/releases)
-[![License](https://img.shields.io/github/license/hattimon/sensecapm1-piphi)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/hattimon/sensecapm1-piphi?style=social)](https://github.com/hattimon/sensecapm1-piphi/stargazers)
+![Architecture](https://img.shields.io/badge/architecture-watchdog%20recovery-blue)
+![Platform](https://img.shields.io/badge/platform-balenaOS-green)
+![Environment](https://img.shields.io/badge/environment-Raspberry%20Pi-orange)
+![Device](https://img.shields.io/badge/device-SenseCAP%20M1-lightgrey)
+![License](https://img.shields.io/github/license/hattimon/sensecapm1-piphi)
+![GitHub Stars](https://img.shields.io/github/stars/hattimon/sensecapm1-piphi?style=social)
 
 Automatic **recovery watchdog for PiPhi running on SenseCAP M1**.
 
@@ -370,6 +373,41 @@ reboot
 ```
 
 Po powrocie panelu **liczniki resetują się**.
+
+---
+
+# 🛠 Rozwiązywanie problemów
+
+### Podgląd logów watchdoga
+
+```
+tail -f ~/piphi-watchdog-run.log
+```
+
+---
+
+### Sprawdzenie statusu usługi
+
+```
+systemctl --user status piphi-watchdog.service
+```
+
+---
+
+### Restart watchdoga
+
+```
+systemctl --user restart piphi-watchdog.service
+```
+
+---
+
+### Ręczne dodanie klucza SSH
+
+```
+export SSH_AUTH_SOCK="/run/user/$UID/ssh-agent.socket"
+ssh-add ~/.ssh/sensecap_root
+```
 
 ---
 
