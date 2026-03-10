@@ -28,12 +28,10 @@ The watchdog:
 
 # 🏗️ Architecture
 
-```mermaid
 flowchart LR
-    RPi[Raspberry Pi (watchdog)] -->|SSH| SC[SenseCAP M1]
-    SC -->|balenaEngine| UB[ubuntu-piphi container]
-    UB -->|Docker| PS[PiPhi stack]
-```
+    RPi["Raspberry Pi (watchdog)"] -->|SSH| SC["SenseCAP M1"]
+    SC -->|balenaEngine| UB["ubuntu-piphi container"]
+    UB -->|Docker| PS["PiPhi stack"]
 
 - **Raspberry Pi** – host watchdoga i `systemd --user` timer  
 - **SenseCAP M1** – urządzenie z balenaOS i PiPhi w kontenerze  
