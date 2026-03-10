@@ -18,6 +18,7 @@ This repository provides a helper script that prepares a **safe PiPhi environmen
 ## 📑 Table of Contents
 
 * ⚙️ [Requirements](#️-requirements)
+* 🔐 [SSH Root Access](#-ssh-root-access-to-sensecap-m1)
 * 🚀 [Quick Installation](#-quick-installation)
 * 📁 [Manual Installation](#-manual-installation)
 * 🐳 [Starting PiPhi](#-starting-piphi)
@@ -217,6 +218,11 @@ http://YOUR_SENSECAP_IP:31415
 http://YOUR_SENSECAP_IP:3000
 ```
 
+You can find the device IP address:
+
+* in your router
+* in the SenseCAP local console
+
 ---
 
 # 📡 GPS Support
@@ -226,6 +232,27 @@ PiPhi accesses GPS through:
 ```
 /dev/ttyACM0
 ```
+
+Testing GPS manually is optional.
+
+Example test:
+
+```
+docker stop piphi-network-image
+
+gpsd -N -n /dev/ttyACM0 -F /var/run/gpsd.sock &
+sleep 3
+cgps -s
+```
+
+Restart PiPhi after testing:
+
+```
+pkill gpsd || true
+docker start piphi-network-image
+```
+
+Normally it is enough to verify GPS status inside the **PiPhi UI**.
 
 ---
 
@@ -241,6 +268,43 @@ Restart missing services:
 docker compose up -d software
 ```
 
+or
+
+```
+docker compose up -d watchtower
+```
+
+---
+
+### GPS not detected
+
+Check:
+
+```
+ls /dev/ttyACM*
+```
+
+If nothing appears:
+
+* reconnect USB GPS
+* reboot SenseCAP
+
+---
+
+### Containers not starting
+
+Check logs:
+
+```
+docker compose logs
+```
+
+or
+
+```
+docker logs piphi-network-image
+```
+
 ---
 
 # 🇵🇱 Dokumentacja po Polsku
@@ -248,6 +312,7 @@ docker compose up -d software
 ## 📑 Spis treści
 
 * ⚙️ [Wymagania](#️-wymagania)
+* 🔐 [Dostęp SSH Root](#-dostęp-root-ssh-do-sensecap-m1)
 * 🚀 [Szybka instalacja](#-szybka-instalacja)
 * 📁 [Instalacja ręczna](#-instalacja-ręczna)
 * 🐳 [Uruchomienie PiPhi](#-uruchomienie-piphi)
