@@ -17,13 +17,10 @@ The system uses **safe recovery logic with exponential backoff** to prevent unne
 
 ---
 
-# 🌍 Language / Język
+# 🌐 Language / Język
 
-🇬🇧 English  
-→ [Go to English documentation](#english-documentation)
-
-🇵🇱 Polski  
-→ [Przejdź do dokumentacji po polsku](#dokumentacja-po-polsku)
+- 🇬🇧 [English Documentation](#english-documentation)
+- 🇵🇱 [Dokumentacja po Polsku](#dokumentacja-po-polsku)
 
 ---
 
@@ -68,6 +65,7 @@ flowchart LR
 
 ---
 
+<a id="english-documentation"></a>
 # 🇬🇧 English Documentation
 
 ## 📦 Repository Files
@@ -277,7 +275,8 @@ The watchdog follows several security principles:
 
 ---
 
-# 🇵🇱 Dokumentacja po polsku
+<a id="dokumentacja-po-polsku"></a>
+# 🇵🇱 Dokumentacja po Polsku
 
 ## 📦 Pliki w repozytorium
 
