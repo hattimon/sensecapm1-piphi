@@ -36,6 +36,27 @@ Before installation make sure you have:
 * 📡 **USB GPS module** (recommended: **U-Blox 7**)
 * 🌐 Internet connection
 
+---
+
+# 🔐 SSH Root Access to SenseCAP M1
+
+Before installing PiPhi you must have **root SSH access** to your SenseCAP M1 device.
+
+📖 Full step-by-step guide:
+
+👉 https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
+
+The guide explains how to:
+
+- enable SSH on SenseCAP
+- connect to the device
+- obtain **root shell access**
+- manage the device through terminal
+
+This step is required for running the installation script.
+
+---
+
 Verify that the GPS device is detected:
 
 ```
@@ -245,6 +266,27 @@ Przed instalacją upewnij się, że masz:
 * 🔐 dostęp **SSH root**
 * 📡 **GPS USB** (np. U-Blox 7)
 * 🌐 połączenie z internetem
+
+---
+
+# 🔐 Dostęp root SSH do SenseCAP M1
+
+Przed instalacją PiPhi musisz mieć **dostęp root przez SSH do urządzenia SenseCAP M1**.
+
+📖 Pełna instrukcja krok po kroku znajduje się tutaj:
+
+👉 https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
+
+Instrukcja pokazuje jak:
+
+- włączyć SSH w SenseCAP
+- połączyć się z urządzeniem
+- uzyskać **dostęp root**
+- zarządzać urządzeniem przez terminal
+
+Ten krok jest wymagany do uruchomienia skryptu instalacyjnego.
+
+---
 
 Sprawdzenie czy GPS jest wykryty:
 
