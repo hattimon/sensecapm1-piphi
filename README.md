@@ -1,8 +1,19 @@
 # 🛰️ PiPhi on SenseCAP M1 (balenaOS)
 
+![Docker](https://img.shields.io/badge/docker-compose-blue)
+![Platform](https://img.shields.io/badge/platform-balenaOS-green)
+![Hardware](https://img.shields.io/badge/device-SenseCAP%20M1-orange)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
 Run the **PiPhi network stack** on a **SenseCAP M1** device using **balenaOS** and a **USB GPS module**.
 
 This repository provides a helper script that prepares a **safe PiPhi environment inside a container**, preventing the main SenseCAP services from being overloaded.
+
+The installation script prepares the environment and automatically modifies `docker-compose.yml` (GPS configuration, devices, volumes).
+
+**Important:**  
+The script **does not automatically start PiPhi services**.  
+PiPhi containers are started manually using `docker compose`.
 
 ---
 
@@ -13,18 +24,52 @@ This repository provides a helper script that prepares a **safe PiPhi environmen
 
 ---
 
+# 🏗 Architecture
+
+The environment runs PiPhi **inside a nested Docker environment** to isolate it from the default SenseCAP miner stack.
+
+```
+SenseCAP M1
+      │
+      ▼
+  balenaEngine
+      │
+      ▼
+ ubuntu-piphi container
+      │
+      ▼
+   Docker daemon
+      │
+      ▼
+ PiPhi docker-compose stack
+      │
+ ┌───────────────┬───────────────┬───────────────┐
+ ▼               ▼               ▼
+Database       Grafana        PiPhi Software
+(PostgreSQL)   Dashboard      + GPS
+```
+
+This approach ensures:
+
+- SenseCAP base system remains stable
+- PiPhi runs in an isolated environment
+- GPS can be passed safely into the container
+- Docker services can be restarted independently
+
+---
+
 # 🇬🇧 English Documentation
 
 ## 📑 Table of Contents
 
-* ⚙️ [Requirements](#️-requirements)
-* 🔐 [SSH Root Access](#-ssh-root-access-to-sensecap-m1)
-* 🚀 [Quick Installation](#-quick-installation)
-* 📁 [Manual Installation](#-manual-installation)
-* 🐳 [Starting PiPhi](#-starting-piphi)
-* 🌍 [Accessing the Interfaces](#-accessing-the-interfaces)
-* 📡 [GPS Support](#-gps-support)
-* 🛠 [Troubleshooting](#-troubleshooting)
+* ⚙️ Requirements
+* 🔐 SSH Root Access
+* 🚀 Quick Installation
+* 📁 Manual Installation
+* 🐳 Starting PiPhi
+* 🌍 Accessing Interfaces
+* 📡 GPS Support
+* 🛠 Troubleshooting
 
 ---
 
@@ -32,39 +77,38 @@ This repository provides a helper script that prepares a **safe PiPhi environmen
 
 Before installation make sure you have:
 
-* 🛰 **SenseCAP M1** running **balenaOS**
-* 🔐 **SSH access as root**
-* 📡 **USB GPS module** (recommended: **U-Blox 7**)
-* 🌐 Internet connection
+* **SenseCAP M1**
+* **balenaOS**
+* **root SSH access**
+* **USB GPS module** (recommended U-Blox 7)
+* Internet connection
 
 ---
 
 # 🔐 SSH Root Access to SenseCAP M1
 
-Before installing PiPhi you must have **root SSH access** to your SenseCAP M1 device.
+Before installing PiPhi you must have **root SSH access**.
 
-📖 Full step-by-step guide:
+Full guide:
 
-👉 https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
+https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
 
 The guide explains how to:
 
-- enable SSH on SenseCAP
-- connect to the device
-- obtain **root shell access**
-- manage the device through terminal
-
-This step is required for running the installation script.
+- enable SSH
+- connect to SenseCAP
+- obtain root shell
+- manage the device via terminal
 
 ---
 
-Verify that the GPS device is detected:
+Verify GPS device:
 
 ```
 ls /dev/ttyACM*
 ```
 
-Expected result:
+Expected:
 
 ```
 /dev/ttyACM0
@@ -74,8 +118,6 @@ Expected result:
 
 # 🚀 Quick Installation
 
-Connect to your SenseCAP via SSH and run:
-
 ```
 mkdir -p /mnt/data/piphi
 cd /mnt/data/piphi
@@ -86,31 +128,29 @@ chmod +x install-piphi-sensecapm1.sh
 ./install-piphi-sensecapm1.sh
 ```
 
-Then select:
+Select:
 
 ```
-1 - Prepare / reinstall PiPhi (without automatic start)
+1 - Prepare / reinstall PiPhi
 ```
 
 ---
 
 # 📁 Manual Installation
 
-Create working directory:
-
 ```
 mkdir -p /mnt/data/piphi
 cd /mnt/data/piphi
 ```
 
-Download installation script:
+Download installer:
 
 ```
-wget https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install-piphi-sensecapm1.sh -O install-piphi-sensecapm1.sh
+wget https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install-piphi-sensecapm1.sh
 chmod +x install-piphi-sensecapm1.sh
 ```
 
-Run the installer:
+Run installer:
 
 ```
 ./install-piphi-sensecapm1.sh
@@ -118,15 +158,26 @@ Run the installer:
 
 The script automatically:
 
-* checks for `/dev/ttyACM0`
-* downloads the latest **PiPhi docker-compose.yml**
-* injects **GPS configuration**
-* fixes **volume mappings**
-* creates persistent directory `/mnt/data/piphi`
+* checks `/dev/ttyACM0`
+* downloads PiPhi docker-compose
+* injects GPS configuration
+* fixes volumes
+* creates `/mnt/data/piphi`
 * pulls `ubuntu:20.04`
-* creates container **ubuntu-piphi**
-* installs **Docker + Docker Compose**
+* creates container `ubuntu-piphi`
+* installs Docker + Docker Compose
 * creates helper script `/piphi-network/start-piphi.sh`
+
+Helper script purpose:
+
+```
+/piphi-network/start-piphi.sh
+```
+
+This script **only starts dockerd inside the container**.  
+PiPhi services are started manually using `docker compose`.
+
+---
 
 Verify container:
 
@@ -134,7 +185,7 @@ Verify container:
 balena ps
 ```
 
-Expected output:
+Expected:
 
 ```
 ubuntu-piphi (Up)
@@ -144,24 +195,20 @@ ubuntu-piphi (Up)
 
 # 🐳 Starting PiPhi
 
-Enter the container:
+Enter container:
 
 ```
 balena exec -it ubuntu-piphi bash
 cd /piphi-network
 ```
 
----
-
-## Start Docker inside container
+Start Docker daemon:
 
 ```
 dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
 sleep 10
 docker ps
 ```
-
-Initially the list will be empty.
 
 ---
 
@@ -173,110 +220,79 @@ sleep 20
 docker ps
 ```
 
-Running containers:
-
-* db
-* grafana
-
-Grafana interface:
-
-```
-http://YOUR_SENSECAP_IP:3000
-```
-
 ---
 
 ## Stage 2 — PiPhi + Watchtower
 
 ```
 docker compose -f docker-compose.yml up -d software watchtower
-docker ps
 ```
-
-Running containers:
-
-* db
-* grafana
-* piphi-network-image
-* watchtower
 
 ---
 
-# 🌍 Accessing the Interfaces
+# 🌍 Accessing Interfaces
 
-After startup the following services should be available.
-
-### PiPhi dashboard
+PiPhi dashboard:
 
 ```
 http://YOUR_SENSECAP_IP:31415
 ```
 
-### Grafana dashboard
+Grafana dashboard:
 
 ```
 http://YOUR_SENSECAP_IP:3000
 ```
 
-You can find the device IP address:
-
-* in your router
-* in the SenseCAP local console
-
 ---
 
 # 📡 GPS Support
 
-PiPhi accesses GPS through:
+PiPhi reads GPS from:
 
 ```
 /dev/ttyACM0
 ```
 
-Testing GPS manually is optional.
-
-Example test:
+Optional test:
 
 ```
 docker stop piphi-network-image
 
 gpsd -N -n /dev/ttyACM0 -F /var/run/gpsd.sock &
-sleep 3
 cgps -s
 ```
 
-Restart PiPhi after testing:
+Restart PiPhi:
 
 ```
-pkill gpsd || true
+pkill gpsd
 docker start piphi-network-image
 ```
-
-Normally it is enough to verify GPS status inside the **PiPhi UI**.
 
 ---
 
 # 🛠 Troubleshooting
 
-### balenaEngine resets socket
+## balenaEngine resets docker socket
 
-Sometimes balenaEngine resets the Docker socket under heavy load.
+Sometimes Docker inside the container stops responding.
 
-Restart missing services:
-
-```
-docker compose up -d software
-```
-
-or
+Fix:
 
 ```
-docker compose up -d watchtower
+cd /piphi-network
+
+dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
+sleep 10
+
+docker compose -f docker-compose.yml up -d db grafana
+docker compose -f docker-compose.yml up -d software watchtower
 ```
 
 ---
 
-### GPS not detected
+## GPS not detected
 
 Check:
 
@@ -284,14 +300,11 @@ Check:
 ls /dev/ttyACM*
 ```
 
-If nothing appears:
-
-* reconnect USB GPS
-* reboot SenseCAP
+Reconnect GPS or reboot device.
 
 ---
 
-### Containers not starting
+## Containers not starting
 
 Check logs:
 
@@ -311,55 +324,50 @@ docker logs piphi-network-image
 
 ## 📑 Spis treści
 
-* ⚙️ [Wymagania](#️-wymagania)
-* 🔐 [Dostęp SSH Root](#-dostęp-root-ssh-do-sensecap-m1)
-* 🚀 [Szybka instalacja](#-szybka-instalacja)
-* 📁 [Instalacja ręczna](#-instalacja-ręczna)
-* 🐳 [Uruchomienie PiPhi](#-uruchomienie-piphi)
-* 🌍 [Dostęp do paneli](#-dostęp-do-paneli)
-* 📡 [Obsługa GPS](#-obsługa-gps)
-* 🛠 [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
+* Wymagania
+* Dostęp SSH root
+* Szybka instalacja
+* Instalacja ręczna
+* Uruchomienie PiPhi
+* Dostęp do paneli
+* GPS
+* Rozwiązywanie problemów
 
 ---
 
 # ⚙️ Wymagania
 
-Przed instalacją upewnij się, że masz:
+Przed instalacją potrzebujesz:
 
-* 🛰 **SenseCAP M1**
-* 💿 **balenaOS**
-* 🔐 dostęp **SSH root**
-* 📡 **GPS USB** (np. U-Blox 7)
-* 🌐 połączenie z internetem
+* **SenseCAP M1**
+* **balenaOS**
+* **dostęp root SSH**
+* **GPS USB**
+* Internet
 
 ---
 
 # 🔐 Dostęp root SSH do SenseCAP M1
 
-Przed instalacją PiPhi musisz mieć **dostęp root przez SSH do urządzenia SenseCAP M1**.
+Instrukcja:
 
-📖 Pełna instrukcja krok po kroku znajduje się tutaj:
+https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
 
-👉 https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
+Pokazuje jak:
 
-Instrukcja pokazuje jak:
-
-- włączyć SSH w SenseCAP
+- włączyć SSH
 - połączyć się z urządzeniem
-- uzyskać **dostęp root**
-- zarządzać urządzeniem przez terminal
-
-Ten krok jest wymagany do uruchomienia skryptu instalacyjnego.
+- uzyskać dostęp root
 
 ---
 
-Sprawdzenie czy GPS jest wykryty:
+Sprawdzenie GPS:
 
 ```
 ls /dev/ttyACM*
 ```
 
-Powinno zwrócić:
+Powinno być:
 
 ```
 /dev/ttyACM0
@@ -369,207 +377,124 @@ Powinno zwrócić:
 
 # 🚀 Szybka instalacja
 
-Połącz się z SenseCAP przez SSH i wykonaj:
-
 ```
 mkdir -p /mnt/data/piphi
 cd /mnt/data/piphi
 
-wget https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install-piphi-sensecapm1.sh -O install-piphi-sensecapm1.sh
+wget https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install-piphi-sensecapm1.sh
 chmod +x install-piphi-sensecapm1.sh
 
 ./install-piphi-sensecapm1.sh
-```
-
-Następnie wybierz:
-
-```
-1 - Przygotuj / przeinstaluj PiPhi (bez automatycznego startu)
 ```
 
 ---
 
 # 📁 Instalacja ręczna
 
-Utwórz katalog roboczy:
-
 ```
 mkdir -p /mnt/data/piphi
 cd /mnt/data/piphi
 ```
 
-Pobierz skrypt instalacyjny:
+Pobierz instalator:
 
 ```
-wget https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install-piphi-sensecapm1.sh -O install-piphi-sensecapm1.sh
-chmod +x install-piphi-sensecapm1.sh
+wget https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install-piphi-sensecapm1.sh
 ```
 
-Uruchom instalator:
+Uruchom:
 
 ```
 ./install-piphi-sensecapm1.sh
 ```
 
-Skrypt automatycznie:
+Skrypt:
 
-* sprawdzi czy istnieje `/dev/ttyACM0`
-* pobierze najnowszy **docker-compose.yml PiPhi**
-* doda konfigurację **GPS**
-* poprawi mapowanie **volume**
-* utworzy katalog trwałych danych `/mnt/data/piphi`
-* pobierze obraz `ubuntu:20.04`
-* utworzy kontener **ubuntu-piphi**
-* zainstaluje **Docker + Docker Compose**
-* utworzy pomocniczy skrypt `/piphi-network/start-piphi.sh`
+- przygotuje środowisko
+- zmodyfikuje docker-compose
+- doda GPS
+- utworzy kontener `ubuntu-piphi`
+- utworzy helper `/piphi-network/start-piphi.sh`
 
-Sprawdzenie czy kontener działa:
-
-```
-balena ps
-```
-
-Oczekiwany wynik:
-
-```
-ubuntu-piphi (Up)
-```
+Skrypt **nie uruchamia usług PiPhi automatycznie**.
 
 ---
 
 # 🐳 Uruchomienie PiPhi
-
-Wejdź do kontenera:
 
 ```
 balena exec -it ubuntu-piphi bash
 cd /piphi-network
 ```
 
----
-
-## Uruchomienie Dockera w kontenerze
+Start dockera:
 
 ```
-dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
+dockerd --host=unix:///var/run/docker.sock > dockerd.log 2>&1 &
 sleep 10
-docker ps
-```
-
-Na początku lista kontenerów będzie pusta.
-
----
-
-## Etap 1 — baza danych + Grafana
-
-```
-docker compose -f docker-compose.yml up -d db grafana
-sleep 20
-docker ps
-```
-
-Uruchomione kontenery:
-
-* db
-* grafana
-
-Panel Grafana:
-
-```
-http://IP_TWOJEGO_SENSECAP:3000
 ```
 
 ---
 
-## Etap 2 — PiPhi + Watchtower
+## Etap 1
 
 ```
-docker compose -f docker-compose.yml up -d software watchtower
-docker ps
+docker compose up -d db grafana
 ```
-
-Uruchomione kontenery:
-
-* db
-* grafana
-* piphi-network-image
-* watchtower
 
 ---
 
-# 🌍 Dostęp do paneli
+## Etap 2
 
-Po uruchomieniu dostępne będą następujące interfejsy:
+```
+docker compose up -d software watchtower
+```
 
-### Panel PiPhi
+---
+
+# 🌍 Dostęp
+
+Panel PiPhi
 
 ```
 http://IP_TWOJEGO_SENSECAP:31415
 ```
 
-### Panel Grafana
+Grafana
 
 ```
 http://IP_TWOJEGO_SENSECAP:3000
 ```
 
-Adres IP urządzenia można znaleźć:
-
-* w routerze
-* w lokalnej konsoli SenseCAP
-
 ---
 
-# 📡 Obsługa GPS
+# 📡 GPS
 
-PiPhi korzysta z GPS przez urządzenie:
+GPS działa przez:
 
 ```
 /dev/ttyACM0
 ```
 
-Test GPS (opcjonalny):
-
-```
-docker stop piphi-network-image
-
-gpsd -N -n /dev/ttyACM0 -F /var/run/gpsd.sock &
-sleep 3
-cgps -s
-```
-
-Po teście uruchom ponownie PiPhi:
-
-```
-pkill gpsd || true
-docker start piphi-network-image
-```
-
-W praktyce wystarczy sprawdzić status GPS w **interfejsie PiPhi**.
-
 ---
 
 # 🛠 Rozwiązywanie problemów
 
-### balenaEngine resetuje socket
-
-Przy dużym obciążeniu balenaEngine może zresetować socket Dockera.
-
-Uruchom ponownie brakujące usługi:
+### Reset docker socket
 
 ```
-docker compose up -d software
-```
+cd /piphi-network
 
-lub
+dockerd --host=unix:///var/run/docker.sock > dockerd.log 2>&1 &
+sleep 10
 
-```
-docker compose up -d watchtower
+docker compose up -d db grafana
+docker compose up -d software watchtower
 ```
 
 ---
 
-### GPS nie jest wykryty
+### Brak GPS
 
 Sprawdź:
 
@@ -577,22 +502,15 @@ Sprawdź:
 ls /dev/ttyACM*
 ```
 
-Jeśli nic nie pojawia się:
-
-* odłącz i podłącz ponownie GPS
-* uruchom ponownie SenseCAP
-
 ---
 
-### Kontenery się nie uruchamiają
-
-Sprawdź logi:
+### Kontenery nie startują
 
 ```
 docker compose logs
 ```
 
-lub:
+lub
 
 ```
 docker logs piphi-network-image
