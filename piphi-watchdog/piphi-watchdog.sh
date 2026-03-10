@@ -75,7 +75,6 @@ log "Panel PiPhi NIE odpowiada. Próba naprawy..."
 # szybki test SSH
 if ! ssh $SSH_OPTS "$SSH_TARGET" "echo 'SSH OK'" >/dev/null 2>&1; then
   log "Brak połączenia SSH do $SSH_TARGET. Kończę od razu, spróbuję przy kolejnym wywołaniu watchdoga."
-  # nie zwiększamy ATTEMPTS, bo nie dotykamy sensownie SenseCAP
   save_state
   exit 1
 fi
@@ -129,7 +128,6 @@ log "Panel PiPhi nadal nie działa po próbie restartu."
 ATTEMPTS=$(( ATTEMPTS + 1 ))
 log "Kolejna nieudana próba z SSH OK: ATTEMPTS=$ATTEMPTS, REBOOT_LEVEL=$REBOOT_LEVEL"
 
-# bazowy backoff przed pierwszym rebootem: 10, 20, 40, 80, 160, 240 min
 BASE_DELAY_MIN=10
 MAX_DELAY_BEFORE_FIRST_REBOOT=240  # 4h
 
@@ -137,7 +135,7 @@ REBOOT_DONE=0
 DELAY_MIN=0
 
 if (( REBOOT_LEVEL == 0 )); then
-  # przed pierwszym rebootem robimy klasyczny exponential backoff
+  # przed pierwszym rebootem: 10, 20, 40, 80, 160, 240 min
   if (( ATTEMPTS >= 3 )); then
     BLOCK=$(( (ATTEMPTS - 3) / 3 ))  # 0,1,2,...
     DELAY_MIN=$(( BASE_DELAY_MIN * (1 << BLOCK) ))
@@ -150,7 +148,7 @@ if (( REBOOT_LEVEL == 0 )); then
 
   if (( DELAY_MIN == MAX_DELAY_BEFORE_FIRST_REBOOT )); then
     log "Osiągnięto maksymalny backoff przed pierwszym rebootem (${MAX_DELAY_BEFORE_FIRST_REBOOT} min). Wysyłam reboot SenseCAP..."
-    if ssh $SSH_OPTS "$SSH_TARGET" "sudo reboot" >/dev/null 2>&1; then
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
       log "Komenda reboot (poziom 1) wysłana pomyślnie."
     else
       log "Nie udało się wysłać komendy reboot (poziom 1)."
@@ -158,18 +156,17 @@ if (( REBOOT_LEVEL == 0 )); then
     REBOOT_DONE=1
     REBOOT_LEVEL=1
     ATTEMPTS=0
-    DELAY_MIN=8*60   # po pierwszym reboocie pauza 8h
+    DELAY_MIN=$((8*60))   # po pierwszym reboocie pauza 8h
   fi
 
 elif (( REBOOT_LEVEL == 1 )); then
-  # po pierwszym reboocie: max „loopowanie” i kolejny reboot dopiero po 8h
-  DELAY_MIN=8*60
+  # po pierwszym reboocie: min 8h
+  DELAY_MIN=$((8*60))
   log "Jesteśmy po pierwszym reboocie. Ustawiam minimalny backoff 8h."
 
-  # jeśli ATTEMPTS urosną (panel ciągle leży) – znowu reboot, ale nie częściej niż co 8h
   if (( ATTEMPTS >= 3 )); then
     log "Kolejne nieudane próby po pierwszym reboocie, wysyłam drugi reboot..."
-    if ssh $SSH_OPTS "$SSH_TARGET" "sudo reboot" >/dev/null 2>&1; then
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
       log "Komenda reboot (poziom 2) wysłana pomyślnie."
     else
       log "Nie udało się wysłać komendy reboot (poziom 2)."
@@ -177,17 +174,17 @@ elif (( REBOOT_LEVEL == 1 )); then
     REBOOT_DONE=1
     REBOOT_LEVEL=2
     ATTEMPTS=0
-    DELAY_MIN=16*60  # po drugim reboocie pauza 16h
+    DELAY_MIN=$((16*60))  # po drugim reboocie pauza 16h
   fi
 
 elif (( REBOOT_LEVEL == 2 )); then
-  # po drugim reboocie: kolejne dopiero po 16h
-  DELAY_MIN=16*60
+  # po drugim reboocie: min 16h
+  DELAY_MIN=$((16*60))
   log "Jesteśmy po drugim reboocie. Ustawiam minimalny backoff 16h."
 
   if (( ATTEMPTS >= 3 )); then
     log "Kolejne nieudane próby po drugim reboocie, wysyłam trzeci reboot..."
-    if ssh $SSH_OPTS "$SSH_TARGET" "sudo reboot" >/dev/null 2>&1; then
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
       log "Komenda reboot (poziom 3) wysłana pomyślnie."
     else
       log "Nie udało się wysłać komendy reboot (poziom 3)."
@@ -195,23 +192,22 @@ elif (( REBOOT_LEVEL == 2 )); then
     REBOOT_DONE=1
     REBOOT_LEVEL=3
     ATTEMPTS=0
-    DELAY_MIN=24*60  # potem już max raz na 24h
+    DELAY_MIN=$((24*60))  # potem max raz na 24h
   fi
 
 else
-  # REBOOT_LEVEL >= 3: ostatecznie, reboot max raz na 24h
-  DELAY_MIN=24*60
+  # REBOOT_LEVEL >= 3: maksymalnie jeden reboot na 24h
+  DELAY_MIN=$((24*60))
   log "Tryb podtrzymania: REBOOT_LEVEL>=3, maksymalnie jeden reboot na 24h."
   if (( ATTEMPTS >= 3 )); then
     log "Kolejne nieudane próby w trybie 24h, wysyłam reboot..."
-    if ssh $SSH_OPTS "$SSH_TARGET" "sudo reboot" >/dev/null 2>&1; then
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
       log "Komenda reboot (tryb 24h) wysłana pomyślnie."
     else
       log "Nie udało się wysłać komendy reboot (tryb 24h)."
     fi
     REBOOT_DONE=1
     ATTEMPTS=0
-    # REBOOT_LEVEL zostaje jak jest (>=3), DELAY_MIN 24h
   fi
 fi
 
