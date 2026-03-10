@@ -50,6 +50,9 @@ Runs automatically every 10 minutes.
 🧩 **Installer-generated watchdog script**  
 The installer generates a **local watchdog script tailored to your system**.
 
+⏸ **Maintenance mode**  
+Allows temporarily stopping the watchdog during installations or debugging.
+
 ---
 
 # 🏗 Architecture
@@ -140,12 +143,6 @@ The installer automatically:
 ~/piphi-watchdog.sh
 ```
 
-The generated script contains:
-
-- container recovery logic
-- `dockerd` validation
-- `start-piphi.sh` execution inside `ubuntu-piphi`
-
 4. Creates systemd services:
 
 ```
@@ -175,9 +172,7 @@ If reachable → **no action required**
 
 ### Stage 2 — Container Recovery
 
-If the panel is down:
-
-The watchdog connects via SSH and verifies services inside:
+If the panel is down the watchdog connects via SSH and verifies services inside:
 
 ```
 ubuntu-piphi
@@ -195,7 +190,7 @@ start-piphi.sh execution
 
 ### Stage 3 — Exponential Backoff
 
-Retry intervals increase to protect hardware:
+Retry intervals increase:
 
 ```
 10 → 20 → 40 → 80 → 160 → 240 minutes
@@ -205,28 +200,28 @@ Retry intervals increase to protect hardware:
 
 ### Stage 4 — Gateway Reboot
 
-If the system remains unavailable after ~4 hours:
+If recovery fails after ~4 hours:
 
 ```
 reboot
 ```
 
-command is sent to SenseCAP.
+is executed on the SenseCAP gateway.
 
 ---
 
 ### Stage 5 — Long Recovery Cycle
 
-Further reboot attempts occur at longer intervals:
+Further attempts occur at:
 
 ```
 8h → 16h → 24h
 ```
 
-Once the panel becomes reachable again:
+When the panel becomes reachable again:
 
 ```
-All timers and counters reset
+All counters reset
 ```
 
 ---
@@ -235,33 +230,111 @@ All timers and counters reset
 
 ### View watchdog logs
 
-```bash
+```
 tail -f ~/piphi-watchdog-run.log
 ```
 
 ---
 
-### Check service status
+### Check watchdog status
 
-```bash
+```
 systemctl --user status piphi-watchdog.service
+```
+
+---
+
+### Check timer
+
+```
+systemctl --user status piphi-watchdog.timer
+```
+
+Expected output:
+
+```
+Active: active (waiting)
+Triggers: piphi-watchdog.service
+```
+
+---
+
+### Stop watchdog (maintenance)
+
+During PiPhi installation or debugging:
+
+```
+systemctl --user stop piphi-watchdog.timer
+systemctl --user stop piphi-watchdog.service
+```
+
+---
+
+### Start watchdog again
+
+```
+systemctl --user start piphi-watchdog.timer
 ```
 
 ---
 
 ### Restart watchdog
 
-```bash
+```
 systemctl --user restart piphi-watchdog.service
 ```
 
 ---
 
-### Manually load SSH key
+### Run watchdog manually
 
-```bash
+```
+~/piphi-watchdog.sh
+```
+
+---
+
+### Verify SSH authentication
+
+```
 export SSH_AUTH_SOCK="/run/user/$UID/ssh-agent.socket"
 ssh-add ~/.ssh/sensecap_root
+```
+
+Test connection:
+
+```
+ssh -p 22222 sensecap_root@SENSECAP_IP
+```
+
+---
+
+### Check container on SenseCAP
+
+```
+balena ps
+```
+
+Look for:
+
+```
+ubuntu-piphi
+```
+
+---
+
+### Check PiPhi panel
+
+```
+curl http://SENSECAP_IP
+```
+
+---
+
+### Reset watchdog state
+
+```
+rm ~/.piphi-watchdog-state
 ```
 
 ---
@@ -302,7 +375,7 @@ $HOME/piphi-watchdog.sh
 
 ## ⚙️ Wymagania
 
-- Raspberry Pi z systemem Debian-based
+- Raspberry Pi z systemem Debian-based  
 - dostęp SSH do SenseCAP
 
 ```
@@ -310,13 +383,11 @@ użytkownik: sensecap_root
 port: 22222
 ```
 
-- klucz SSH (opcjonalnie z hasłem)
-
 ---
 
 ## 🚀 Instalacja
 
-```bash
+```
 git clone https://github.com/hattimon/sensecapm1-piphi.git
 cd sensecapm1-piphi/piphi-watchdog
 chmod +x piphi-watchdog-setup.sh
@@ -331,13 +402,13 @@ Instalator:
 
 1. Konfiguruje **ssh-agent jako usługę systemd użytkownika**
 2. Dodaje klucz SSH do agenta
-3. Generuje watchdog:
+3. Generuje watchdog
 
 ```
 ~/piphi-watchdog.sh
 ```
 
-4. Tworzy:
+4. Tworzy
 
 ```
 piphi-watchdog.service
@@ -350,23 +421,22 @@ piphi-watchdog.timer
 
 ## 🔁 Logika naprawy
 
-1. Sprawdzenie panelu PiPhi
+1. Sprawdzenie panelu PiPhi  
+2. Restart usług w `ubuntu-piphi`  
 
-2. Restart usług w `ubuntu-piphi`
-
-3. Backoff:
+Backoff:
 
 ```
 10 → 20 → 40 → 80 → 160 → 240 minut
 ```
 
-4. Po ~4 godzinach wykonywany jest:
+Po ~4 godzinach wykonywany jest:
 
 ```
 reboot
 ```
 
-5. Kolejne próby:
+Kolejne próby:
 
 ```
 8h → 16h → 24h
@@ -378,7 +448,7 @@ Po powrocie panelu **liczniki resetują się**.
 
 # 🛠 Rozwiązywanie problemów
 
-### Podgląd logów watchdoga
+### Podgląd logów
 
 ```
 tail -f ~/piphi-watchdog-run.log
@@ -386,7 +456,7 @@ tail -f ~/piphi-watchdog-run.log
 
 ---
 
-### Sprawdzenie statusu usługi
+### Status usługi
 
 ```
 systemctl --user status piphi-watchdog.service
@@ -394,7 +464,32 @@ systemctl --user status piphi-watchdog.service
 
 ---
 
-### Restart watchdoga
+### Status timera
+
+```
+systemctl --user status piphi-watchdog.timer
+```
+
+---
+
+### Zatrzymanie watchdoga (maintenance)
+
+```
+systemctl --user stop piphi-watchdog.timer
+systemctl --user stop piphi-watchdog.service
+```
+
+---
+
+### Ponowne uruchomienie
+
+```
+systemctl --user start piphi-watchdog.timer
+```
+
+---
+
+### Restart usługi
 
 ```
 systemctl --user restart piphi-watchdog.service
@@ -402,7 +497,15 @@ systemctl --user restart piphi-watchdog.service
 
 ---
 
-### Ręczne dodanie klucza SSH
+### Ręczne uruchomienie
+
+```
+~/piphi-watchdog.sh
+```
+
+---
+
+### Sprawdzenie SSH
 
 ```
 export SSH_AUTH_SOCK="/run/user/$UID/ssh-agent.socket"
@@ -411,11 +514,33 @@ ssh-add ~/.ssh/sensecap_root
 
 ---
 
+### Sprawdzenie kontenera
+
+```
+balena ps
+```
+
+---
+
+### Sprawdzenie panelu
+
+```
+curl http://IP_SENSECAP
+```
+
+---
+
+### Reset stanu watchdoga
+
+```
+rm ~/.piphi-watchdog-state
+```
+
+---
+
 # ⭐ Contributing
 
 Pull requests are welcome.
-
-If you find a bug or improvement:
 
 - open an **Issue**
 - submit a **Pull Request**
@@ -424,12 +549,10 @@ If you find a bug or improvement:
 
 # 📄 License
 
-This project is released under the **MIT License**.
+Released under **MIT License**
 
-See the file:
+See:
 
 ```
 LICENSE
 ```
-
-for details.
