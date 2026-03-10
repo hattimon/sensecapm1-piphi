@@ -11,6 +11,7 @@ RESET='\e[0m'
 
 LOGFILE="$HOME/piphi-watchdog-setup.log"
 LANG_CHOICE="en" # default
+AUTO_MODE=0
 
 log() {
     echo -e "$@" | tee -a "$LOGFILE"
@@ -61,11 +62,6 @@ ask() {
     echo "$var"
 }
 
-AUTO_MODE=0
-
-# =========================
-# LANGUAGE SELECTION
-# =========================
 echo -e "${CYAN}${BOLD}===== PiPhi Watchdog setup =====${RESET}"
 echo -e "${YELLOW}Select language / Wybierz język:${RESET}"
 echo " 1) English (default)"
@@ -80,12 +76,9 @@ else
     LANG_CHOICE="en"
 fi
 
-# =========================
-# INTRO
-# =========================
 if [[ "$LANG_CHOICE" == "pl" ]]; then
     section "WSTĘP"
-    log "${GREEN}Ten skrypt skonfiguruje ssh-agent, załaduje klucz SenseCAP, utworzy watchdog PiPhi (systemd) i zapisze konfigurację.${RESET}"
+    log "${GREEN}Ten skrypt skonfiguruje ssh-agent, załaduje klucz SenseCAP, utworzy watchdog PiPhi (systemd) i zapisze konfigurację pingowania panelu.${RESET}"
     log "Log z przebiegu: $LOGFILE"
     log "Uruchamiaj jako użytkownik ${BOLD}pi${RESET} na Raspberry Pi."
 else
@@ -110,9 +103,7 @@ else
     fi
 fi
 
-# =========================
-# 1: ENV CHECK
-# =========================
+# 1. ENV CHECK
 if [[ "$LANG_CHOICE" == "pl" ]]; then
     section "1. Walidacja środowiska"
 else
@@ -135,7 +126,7 @@ if [[ "$USER" != "pi" ]]; then
     fi
 fi
 
-for bin in systemctl ssh-agent ssh-add ssh; do
+for bin in systemctl ssh-agent ssh-add ssh curl; do
     if ! command -v "$bin" >/dev/null 2>&1; then
         if [[ "$LANG_CHOICE" == "pl" ]]; then
             log "${RED}Brak wymaganej komendy: $bin. Zainstaluj pakiety i spróbuj ponownie.${RESET}"
@@ -146,27 +137,7 @@ for bin in systemctl ssh-agent ssh-add ssh; do
     fi
 done
 
-if ! command -v curl >/dev/null 2>&1; then
-    if [[ "$LANG_CHOICE" == "pl" ]]; then
-        log "${YELLOW}Brak 'curl' – instaluję...${RESET}"
-    else
-        log "${YELLOW}'curl' not found – installing...${RESET}"
-    fi
-    if command -v sudo >/dev/null 2>&1; then
-        sudo apt-get update && sudo apt-get install -y curl
-    else
-        if [[ "$LANG_CHOICE" == "pl" ]]; then
-            log "${RED}Brak curl i sudo – zainstaluj curl ręcznie.${RESET}"
-        else
-            log "${RED}No curl and no sudo – install curl manually.${RESET}"
-        fi
-        exit 1
-    fi
-fi
-
-# =========================
-# 2: PATHS, IP, PORT
-# =========================
+# 2. PATHS, IP, PORT
 if [[ "$LANG_CHOICE" == "pl" ]]; then
     section "2. Ścieżki, IP SenseCAP i port PiPhi"
 else
@@ -217,9 +188,7 @@ fi
 mkdir -p "$(dirname "$WATCHDOG_PATH")"
 mkdir -p "$CONF_DIR"
 
-# =========================
-# 3: WRITE CONFIG
-# =========================
+# 3. WRITE CONFIG
 if [[ "$LANG_CHOICE" == "pl" ]]; then
     section "3. Zapis konfiguracji do $CONF_FILE"
 else
@@ -238,13 +207,13 @@ BOOT_DELAY="300"
 RETRY_DELAY="60"
 EOF
 
-# =========================
-# 4: GENERATE WATCHDOG SCRIPT
-# =========================
+log "Konfiguracja zapisana w: $CONF_FILE"
+
+# 4. GENERATE WATCHDOG SCRIPT (pełna wersja z dockerd/start-piphi.sh)
 if [[ "$LANG_CHOICE" == "pl" ]]; then
-    section "4. Generowanie skryptu watchdog"
+    section "4. Generacja skryptu piphi-watchdog.sh"
 else
-    section "4. Generating watchdog script"
+    section "4. Generating piphi-watchdog.sh"
 fi
 
 cat > "$WATCHDOG_PATH" <<'EOF'
@@ -252,9 +221,10 @@ cat > "$WATCHDOG_PATH" <<'EOF'
 set -e
 
 CONF_FILE="$HOME/.config/piphi-watchdog.conf"
+
 if [[ ! -f "$CONF_FILE" ]]; then
-    echo "Missing config file: $CONF_FILE"
-    exit 1
+  echo "Brak pliku konfiguracyjnego: $CONF_FILE"
+  exit 1
 fi
 
 # shellcheck source=/dev/null
@@ -263,23 +233,28 @@ source "$CONF_FILE"
 LOGFILE="$HOME/piphi-watchdog-run.log"
 STATE_DIR="$HOME/.local/state"
 STATE_FILE="$STATE_DIR/piphi-watchdog.state"
+
 mkdir -p "$STATE_DIR"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOGFILE"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOGFILE"
 }
 
-# --- State management ---
 ATTEMPTS=0
 NEXT_TS=0
 REBOOT_LEVEL=0
+
 if [[ -f "$STATE_FILE" ]]; then
-    source "$STATE_FILE" || true
+  # shellcheck disable=SC1090
+  source "$STATE_FILE" || true
 fi
 
-now_ts() { date +%s; }
+now_ts() {
+  date +%s
+}
+
 save_state() {
-    cat > "$STATE_FILE" <<EOL
+  cat > "$STATE_FILE" <<EOL
 ATTEMPTS=$ATTEMPTS
 NEXT_TS=$NEXT_TS
 REBOOT_LEVEL=$REBOOT_LEVEL
@@ -287,70 +262,211 @@ EOL
 }
 
 NOW=$(now_ts)
+
 if [[ "$NEXT_TS" -gt "$NOW" ]]; then
-    exit 0
+  REM=$(( NEXT_TS - NOW ))
+  log "Backoff aktywny: kolejne próby dopiero za ${REM}s (do $(date -d "@$NEXT_TS")). Kończę."
+  exit 0
 fi
 
 URL="http://${SENSECAP_HOST}:${SENSECAP_PORT}/"
 SSH_TARGET="${SENSECAP_SSH_USER}@${SENSECAP_HOST}"
-# Use agent (BatchMode) but allow fallback to specific key if needed
-SSH_OPTS="-p ${SENSECAP_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=10"
+SSH_OPTS="-p ${SENSECAP_SSH_PORT} -i ${SSH_KEY_PATH} -o IdentitiesOnly=yes -o ConnectTimeout=10"
 
-log "Checking PiPhi panel at: $URL"
+BOOT_DELAY="${BOOT_DELAY:-0}"
+RETRY_DELAY="${RETRY_DELAY:-30}"
+
+log "Sprawdzam panel PiPhi pod adresem: $URL"
+
 if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
-    ATTEMPTS=0; NEXT_TS=0; REBOOT_LEVEL=0; save_state
-    exit 0
+  log "Panel PiPhi odpowiada. Resetuję cały stan backoff/reboot."
+  ATTEMPTS=0
+  NEXT_TS=0
+  REBOOT_LEVEL=0
+  save_state
+  exit 0
 fi
 
-log "Panel DOWN. Checking SSH..."
+log "Panel PiPhi NIE odpowiada. Próba naprawy..."
+
 if ! ssh $SSH_OPTS "$SSH_TARGET" "echo 'SSH OK'" >/dev/null 2>&1; then
-    log "SSH failed. Exiting."
-    exit 1
+  log "Brak połączenia SSH do $SSH_TARGET. Kończę od razu, spróbuję przy kolejnym wywołaniu watchdoga."
+  save_state
+  exit 1
 fi
 
-log "SSH OK. Refreshing stack..."
-ssh $SSH_OPTS "$SSH_TARGET" '
-    if ! balena exec ubuntu-piphi docker info >/dev/null 2>&1; then
-        balena exec ubuntu-piphi bash -lc "cd /piphi-network && ./start-piphi.sh" || true
-    fi
-    balena exec ubuntu-piphi docker restart db grafana piphi-network-image watchtower 2>&1 || true
-' >> "$LOGFILE" 2>&1
+if [[ "$BOOT_DELAY" -gt 0 ]]; then
+  log "Połączenie SSH działa. Czekam ${BOOT_DELAY}s przed próbą naprawy kontenerów..."
+  sleep "$BOOT_DELAY"
+fi
 
-# --- Backoff & Reboot logic ---
-# (Standard logic follows here...)
-# [Simplified for this example, the real script has the full levels]
-ATTEMPTS=$((ATTEMPTS + 1))
-# ... [Backoff logic same as provided in chat] ...
+log "Próbuję odtworzyć środowisko PiPhi wewnątrz ubuntu-piphi (jak ręcznie)..."
+
+ssh $SSH_OPTS "$SSH_TARGET" '
+  set -e
+
+  echo "===> balena ps (host) dla diagnostyki:"
+  balena ps || true
+
+  echo "===> Sprawdzam, czy ubuntu-piphi jest UP..."
+  if ! balena ps | grep -q "ubuntu-piphi"; then
+    echo "ubuntu-piphi nie działa – próbuję go uruchomić..."
+    balena restart ubuntu-piphi || true
+    sleep 10
+  fi
+
+  echo "===> Sprawdzam dockerd w ubuntu-piphi (docker info)..."
+  if ! balena exec ubuntu-piphi docker info >/dev/null 2>&1; then
+    echo "Docker w ubuntu-piphi NIE działa – uruchamiam tak jak ręcznie."
+    if balena exec ubuntu-piphi bash -lc "[ -d /piphi-network ]"; then
+      echo "Uruchamiam: cd /piphi-network && dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &"
+      balena exec ubuntu-piphi bash -lc "cd /piphi-network && dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &"
+      sleep 10
+      echo "Uruchamiam: ./start-piphi.sh (docker compose up ...)"
+      balena exec ubuntu-piphi bash -lc "cd /piphi-network && ./start-piphi.sh" || true
+    elif [ -d /mnt/data/piphi ]; then
+      echo "Fallback: /mnt/data/piphi istnieje – uruchamiam tam start-piphi.sh"
+      balena exec ubuntu-piphi bash -lc "cd /mnt/data/piphi && ./start-piphi.sh" || true
+    else
+      echo "Brak katalogu /piphi-network i /mnt/data/piphi – nie wiem, gdzie jest instalacja PiPhi."
+    fi
+  else
+    echo "Docker w ubuntu-piphi działa – sprawdzam kontenery PiPhi..."
+    balena exec ubuntu-piphi docker ps || true
+  fi
+' >> "$LOGFILE" 2>&1 || log "Błąd podczas odtwarzania środowiska PiPhi wewnątrz ubuntu-piphi."
+
+log "Odczekuję ${RETRY_DELAY}s i ponownie sprawdzam panel..."
+sleep "$RETRY_DELAY"
+
+if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
+  log "Panel PiPhi ponownie działa po naprawie. Resetuję stan."
+  ATTEMPTS=0
+  NEXT_TS=0
+  REBOOT_LEVEL=0
+  save_state
+  exit 0
+fi
+
+log "Panel PiPhi nadal nie działa po próbie naprawy."
+
+ATTEMPTS=$(( ATTEMPTS + 1 ))
+log "Kolejna nieudana próba z SSH OK: ATTEMPTS=$ATTEMPTS, REBOOT_LEVEL=$REBOOT_LEVEL"
+
+BASE_DELAY_MIN=10
+MAX_DELAY_BEFORE_FIRST_REBOOT=240
+
+REBOOT_DONE=0
+DELAY_MIN=0
+
+if (( REBOOT_LEVEL == 0 )); then
+  if (( ATTEMPTS >= 3 )); then
+    BLOCK=$(( (ATTEMPTS - 3) / 3 ))
+    DELAY_MIN=$(( BASE_DELAY_MIN * (1 << BLOCK) ))
+    if (( DELAY_MIN > MAX_DELAY_BEFORE_FIRST_REBOOT )); then
+      DELAY_MIN=$MAX_DELAY_BEFORE_FIRST_REBOOT
+    fi
+  else
+    DELAY_MIN=0
+  fi
+
+  if (( DELAY_MIN == MAX_DELAY_BEFORE_FIRST_REBOOT )); then
+    log "Osiągnięto maksymalny backoff przed pierwszym rebootem (${MAX_DELAY_BEFORE_FIRST_REBOOT} min). Wysyłam reboot SenseCAP..."
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
+      log "Komenda reboot (poziom 1) wysłana pomyślnie."
+    else
+      log "Nie udało się wysłać komendy reboot (poziom 1)."
+    fi
+    REBOOT_DONE=1
+    REBOOT_LEVEL=1
+    ATTEMPTS=0
+    DELAY_MIN=$((8*60))
+  fi
+
+elif (( REBOOT_LEVEL == 1 )); then
+  DELAY_MIN=$((8*60))
+  log "Jesteśmy po pierwszym reboocie. Ustawiam minimalny backoff 8h."
+  if (( ATTEMPTS >= 3 )); then
+    log "Kolejne nieudane próby po pierwszym reboocie, wysyłam drugi reboot..."
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
+      log "Komenda reboot (poziom 2) wysłana pomyślnie."
+    else
+      log "Nie udało się wysłać komendy reboot (poziom 2)."
+    fi
+    REBOOT_DONE=1
+    REBOOT_LEVEL=2
+    ATTEMPTS=0
+    DELAY_MIN=$((16*60))
+  fi
+
+elif (( REBOOT_LEVEL == 2 )); then
+  DELAY_MIN=$((16*60))
+  log "Jesteśmy po drugim reboocie. Ustawiam minimalny backoff 16h."
+  if (( ATTEMPTS >= 3 )); then
+    log "Kolejne nieudane próby po drugim reboocie, wysyłam trzeci reboot..."
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
+      log "Komenda reboot (poziom 3) wysłana pomyślnie."
+    else
+      log "Nie udało się wysłać komendy reboot (poziom 3)."
+    fi
+    REBOOT_DONE=1
+    REBOOT_LEVEL=3
+    ATTEMPTS=0
+    DELAY_MIN=$((24*60))
+  fi
+
+else
+  DELAY_MIN=$((24*60))
+  log "Tryb podtrzymania: REBOOT_LEVEL>=3, maksymalnie jeden reboot na 24h."
+  if (( ATTEMPTS >= 3 )); then
+    log "Kolejne nieudane próby w trybie 24h, wysyłam reboot..."
+    if ssh $SSH_OPTS "$SSH_TARGET" "reboot" >/dev/null 2>&1; then
+      log "Komenda reboot (tryb 24h) wysłana pomyślnie."
+    else
+      log "Nie udało się wysłać komendy reboot (tryb 24h)."
+    fi
+    REBOOT_DONE=1
+    ATTEMPTS=0
+  fi
+fi
+
+if (( DELAY_MIN > 0 )); then
+  DELAY_SEC=$(( DELAY_MIN * 60 ))
+  NEXT_TS=$(( NOW + DELAY_SEC ))
+  log "Ustawiam backoff: następne realne próby dopiero za ${DELAY_MIN} minut (do $(date -d "@$NEXT_TS"))."
+else
+  NEXT_TS=0
+fi
+
 save_state
+
+if (( REBOOT_DONE == 1 )); then
+  log "Po reboot (REBOOT_LEVEL=$REBOOT_LEVEL) watchdog na RPi będzie czekał do $(date -d "@$NEXT_TS") zanim znowu dotknie SenseCAP."
+fi
+
 exit 1
 EOF
 
-# Note: In the real script I will use the FULL version of the watchdog script provided in previous turns.
-# For now, I'm updating the installer to handle the SSH KEY and Agent.
-
 chmod +x "$WATCHDOG_PATH"
 
-# =========================
-# 5: ssh-agent SERVICE
-# =========================
+# 5. ssh-agent SERVICE
 if [[ "$LANG_CHOICE" == "pl" ]]; then
-    section "5. Konfiguracja ssh-agent"
+    section "5. Konfiguracja systemd user service: ssh-agent"
 else
-    section "5. Configuring ssh-agent"
+    section "5. Configuring systemd user service: ssh-agent"
 fi
 
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# (Creating ssh-agent.service)
 cat > "$SYSTEMD_USER_DIR/ssh-agent.service" <<EOF
 [Unit]
-Description=SSH Key Agent
+Description=SSH key agent
 
 [Service]
 Type=simple
-Environment=XDG_RUNTIME_DIR=/run/user/%U
-ExecStart=/usr/bin/ssh-agent -D -a \$XDG_RUNTIME_DIR/ssh-agent.socket
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
+ExecStart=/usr/bin/ssh-agent -D -a %t/ssh-agent.socket
 
 [Install]
 WantedBy=default.target
@@ -359,22 +475,67 @@ EOF
 systemctl --user daemon-reload
 systemctl --user enable --now ssh-agent.service
 
-# =========================
-# 6: ssh-add key
-# =========================
+# 6. ssh-add key
 if [[ "$LANG_CHOICE" == "pl" ]]; then
-    section "6. Dodawanie klucza do agenta"
-    log "Podaj hasło do klucza: $SSH_KEY_PATH"
+    section "6. Dodawanie klucza SenseCAP do ssh-agent"
+    log "Za chwilę zostaniesz poproszony o passphrase do klucza: $SSH_KEY_PATH"
 else
-    section "6. Adding key to agent"
-    log "Enter passphrase for key: $SSH_KEY_PATH"
+    section "6. Adding SenseCAP key to ssh-agent"
+    log "You will now be asked for passphrase for: $SSH_KEY_PATH"
 fi
 
 export SSH_AUTH_SOCK="/run/user/$UID/ssh-agent.socket"
 ssh-add "$SSH_KEY_PATH"
 
-# =========================
-# 7: watchdog service
-# =========================
-# (Creating watchdog.service and .timer)
-# ...
+# 7. watchdog service + timer
+if [[ "$LANG_CHOICE" == "pl" ]]; then
+    section "7. Konfiguracja piphi-watchdog.service i .timer"
+else
+    section "7. Configuring piphi-watchdog.service and .timer"
+fi
+
+cat > "$SYSTEMD_USER_DIR/piphi-watchdog.service" <<EOF
+[Unit]
+Description=PiPhi watchdog
+
+[Service]
+Type=oneshot
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
+WorkingDirectory=$HOME
+ExecStart=$WATCHDOG_PATH
+EOF
+
+cat > "$SYSTEMD_USER_DIR/piphi-watchdog.timer" <<EOF
+[Unit]
+Description=Run PiPhi watchdog periodically
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=600
+AccuracySec=10s
+Unit=piphi-watchdog.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now piphi-watchdog.timer
+
+if [[ "$LANG_CHOICE" == "pl" ]]; then
+    section "11. Podsumowanie"
+    log "Konfiguracja zakończona."
+    log "Plik konfiguracyjny: $CONF_FILE"
+    log "Skrypt watchdoga: $WATCHDOG_PATH"
+    log "Usługi user-level: ssh-agent.service, piphi-watchdog.service, piphi-watchdog.timer"
+    log "Po restarcie RPi systemd --user uruchomi ssh-agent i timer, który co 10min będzie odpalał watchdoga."
+    log "Log z instalacji: $LOGFILE"
+else
+    section "11. Summary"
+    log "Configuration finished."
+    log "Config file: $CONF_FILE"
+    log "Watchdog script: $WATCHDOG_PATH"
+    log "User-level services: ssh-agent.service, piphi-watchdog.service, piphi-watchdog.timer"
+    log "After Raspberry Pi reboot, systemd --user will start ssh-agent and the timer, which runs watchdog every 10 minutes."
+    log "Setup log: $LOGFILE"
+fi
