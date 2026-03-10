@@ -1,13 +1,10 @@
 #!/bin/bash
-# PiPhi Network Installation Script dla SenseCAP M1 (balenaOS)
-# Wersja: 2.0
-# Autor: Ty (+ poprawki pod GitHub)
-# Opis:
-# - Instaluje PiPhi w balenaOS na SenseCAP M1
-# - Wszystkie dane w /mnt/data/piphi (trwała pamięć)
-# - Kontener ubuntu-piphi + wewnętrzny Docker + GPS + autostart
-
-# ===== USTAWIENIA PODSTAWOWE =====
+# PiPhi Network Installation Script for SenseCAP M1 (balenaOS)
+# Version: 3.0
+# - Prepares /mnt/data/piphi with PiPhi docker-compose.yml
+# - Creates ubuntu-piphi container with /piphi-network bound to /mnt/data/piphi
+# - Installs Docker inside ubuntu-piphi
+# - DOES NOT start PiPhi automatically (manual docker compose up)
 
 INSTALL_DIR="/mnt/data/piphi"
 CONTAINER_NAME="ubuntu-piphi"
@@ -15,7 +12,7 @@ UBUNTU_IMAGE="ubuntu:20.04"
 COMPOSE_URL="https://chibisafe.piphi.network/m2JmK11Z7tor.yml"
 GPS_DEVICE="/dev/ttyACM0"
 
-# ===== JĘZYK =====
+# ===== LANGUAGE =====
 
 if [ -f /tmp/language ]; then
     LANGUAGE=$(cat /tmp/language)
@@ -36,7 +33,7 @@ function set_language() {
 }
 
 declare -A MESSAGES
-MESSAGES[pl,header]="Instalacja PiPhi Network na SenseCAP M1 (balenaOS)"
+MESSAGES[pl,header]="Instalacja / przygotowanie PiPhi Network na SenseCAP M1 (balenaOS)"
 MESSAGES[pl,separator]="=============================================================="
 MESSAGES[pl,wget_missing]="Brak wget na hoście. Zainstaluj wget lub pobierz pliki ręcznie."
 MESSAGES[pl,changing_dir]="Używam katalogu instalacyjnego: $INSTALL_DIR ..."
@@ -49,7 +46,7 @@ MESSAGES[pl,gps_not_detected]="GPS nie wykryty. Podłącz U-Blox 7 i sprawdź ls
 MESSAGES[pl,removing_old]="Usuwanie starej instalacji PiPhi / starego ubuntu-piphi..."
 MESSAGES[pl,downloading_compose]="Pobieranie docker-compose.yml PiPhi..."
 MESSAGES[pl,download_error]="Błąd pobierania docker-compose.yml"
-MESSAGES[pl,updating_compose]="Modyfikacja docker-compose.yml (GPS + volumeny)..."
+MESSAGES[pl,updating_compose]="Modyfikacja docker-compose.yml (GPS + volumes)..."
 MESSAGES[pl,pulling_ubuntu]="Pobieranie obrazu Ubuntu (próba %d/3)..."
 MESSAGES[pl,pull_error]="Błąd pobierania Ubuntu po 3 próbach."
 MESSAGES[pl,running_container]="Uruchamianie kontenera bazowego $CONTAINER_NAME..."
@@ -62,18 +59,13 @@ MESSAGES[pl,installing_deps]="Instalacja zależności (gpsd, net-tools, itp.) w 
 MESSAGES[pl,deps_error]="Błąd instalacji zależności."
 MESSAGES[pl,installing_docker]="Instalacja Dockera i compose w kontenerze..."
 MESSAGES[pl,docker_error]="Błąd instalacji Dockera."
-MESSAGES[pl,configuring_startup]="Tworzenie skryptu start-piphi.sh (dockerd + docker compose)..."
-MESSAGES[pl,starting_daemon]="Start PiPhi (dockerd + compose)..."
-MESSAGES[pl,daemon_error]="Błąd startu PiPhi (dockerd/compose)."
-MESSAGES[pl,waiting_panel]="Czekanie na panel PiPhi (port 31415, max 60s)..."
-MESSAGES[pl,panel_success]="Panel PiPhi: http://<IP_SenseCAPa>:31415"
-MESSAGES[pl,panel_error]="Panel nie działa po 60s (sprawdź balena exec $CONTAINER_NAME docker ps)."
-MESSAGES[pl,install_complete]="Instalacja zakończona. PiPhi startuje automatycznie po restarcie."
+MESSAGES[pl,configuring_startup]="Tworzenie start-piphi.sh (ręczny start dockerd + compose)..."
+MESSAGES[pl,install_complete]="Przygotowanie zakończone. Dalej uruchamiasz PiPhi ręcznie według instrukcji w README."
 MESSAGES[pl,check_ps]="Kontenery: balena ps (host) i balena exec $CONTAINER_NAME docker ps (wewnątrz)."
-MESSAGES[pl,gps_check]="GPS: balena exec -it $CONTAINER_NAME cgps -s (na zewnątrz, z widokiem nieba)."
+MESSAGES[pl,gps_check]="GPS: sprawdzany w samej aplikacji PiPhi (cgps opcjonalnie)."
 MESSAGES[pl,logs_check]="Logi PiPhi: balena exec $CONTAINER_NAME docker logs piphi-network-image"
 
-MESSAGES[en,header]="Installing PiPhi Network on SenseCAP M1 (balenaOS)"
+MESSAGES[en,header]="Preparing PiPhi Network on SenseCAP M1 (balenaOS)"
 MESSAGES[en,separator]="=============================================================="
 MESSAGES[en,wget_missing]="wget not installed on host. Install wget or download files manually."
 MESSAGES[en,changing_dir]="Using install directory: $INSTALL_DIR ..."
@@ -99,15 +91,10 @@ MESSAGES[en,installing_deps]="Installing dependencies (gpsd, net-tools, etc.) in
 MESSAGES[en,deps_error]="Error installing dependencies."
 MESSAGES[en,installing_docker]="Installing Docker and compose in container..."
 MESSAGES[en,docker_error]="Error installing Docker."
-MESSAGES[en,configuring_startup]="Creating start-piphi.sh (dockerd + docker compose)..."
-MESSAGES[en,starting_daemon]="Starting PiPhi (dockerd + compose)..."
-MESSAGES[en,daemon_error]="Error starting PiPhi (dockerd/compose)."
-MESSAGES[en,waiting_panel]="Waiting for PiPhi panel (port 31415, max 60s)..."
-MESSAGES[en,panel_success]="PiPhi panel: http://<SenseCAP_IP>:31415"
-MESSAGES[en,panel_error]="Panel not up after 60s (check balena exec $CONTAINER_NAME docker ps)."
-MESSAGES[en,install_complete]="Installation complete. PiPhi will auto-start on reboot."
+MESSAGES[en,configuring_startup]="Creating start-piphi.sh (manual dockerd + compose helper)..."
+MESSAGES[en,install_complete]="Preparation complete. Start PiPhi manually as described in README."
 MESSAGES[en,check_ps]="Containers: balena ps (host) and balena exec $CONTAINER_NAME docker ps (inside)."
-MESSAGES[en,gps_check]="GPS: balena exec -it $CONTAINER_NAME cgps -s (outside, clear sky)."
+MESSAGES[en,gps_check]="GPS: check inside PiPhi UI (cgps optional only)."
 MESSAGES[en,logs_check]="PiPhi logs: balena exec $CONTAINER_NAME docker logs piphi-network-image"
 
 function msg() {
@@ -115,7 +102,7 @@ function msg() {
     printf "${MESSAGES[$LANGUAGE,$key]}\n" "${@:2}"
 }
 
-# ===== FUNKCJE POMOCNICZE =====
+# ===== HELPERS =====
 
 function wait_for_container() {
     local container=$1
@@ -145,7 +132,7 @@ function exec_with_retry() {
     return 1
 }
 
-# ===== GŁÓWNA INSTALACJA =====
+# ===== MAIN INSTALL / PREPARE =====
 
 function install_piphi() {
     msg "header"
@@ -173,7 +160,7 @@ function install_piphi() {
         msg "gps_detected" "$GPS_DEVICE"
     else
         msg "gps_not_detected"
-        exit 1
+        # NIE przerywamy instalacji – pozwalamy zainstalować PiPhi, GPS można dodać później
     fi
 
     msg "removing_old"
@@ -185,19 +172,31 @@ function install_piphi() {
     wget -O docker-compose.yml "$COMPOSE_URL" || { msg "download_error"; exit 1; }
 
     msg "updating_compose"
+    # wywal stary 'version:' (nie jest potrzebny w v2 compose)
     sed -i '/^version:/d' docker-compose.yml
-    sed -i '/software:/a \    devices:\n      - "'"$GPS_DEVICE"'":"'"$GPS_DEVICE"'"' docker-compose.yml
-    sed -i '/software:/a \    environment:\n      - "GPS_DEVICE='"$GPS_DEVICE"'"' docker-compose.yml
-    # opcjonalnie grafana volume jak w Twojej wersji
-    if ! grep -q "volumes:" docker-compose.yml | grep -q "grafana"; then
-        sed -i '/grafana:/a \    volumes:\n      - grafana:/var/lib/grafana' docker-compose.yml
-        cat >> docker-compose.yml << 'EOL'
 
+    # dodaj GPS do software (devices + environment) – poprawne YAML
+    sed -i '/software:/a \    devices:\n      - "'"$GPS_DEVICE"':'"$GPS_DEVICE"'"' docker-compose.yml
+    sed -i '/software:/a \    environment:\n      - "GPS_DEVICE='"$GPS_DEVICE"'"' docker-compose.yml
+
+    # popraw grafanę – używaj nazwanych volume zamiast bind do /var/lib/grafana
+    sed -i 's#- /var/lib/grafana#- grafana:/var/lib/grafana#' docker-compose.yml
+
+    # upewnij się, że na dole jest jeden blok volumes: z db + grafana
+    awk '
+/^volumes:/ {exit}
+{print}
+' docker-compose.yml > docker-compose.head
+
+    cat << 'EOF' >> docker-compose.head
 volumes:
+  db:
+    driver: local
   grafana:
     driver: local
-EOL
-    fi
+EOF
+
+    mv docker-compose.head docker-compose.yml
 
     for attempt in {1..3}; do
         msg "pulling_ubuntu" "$attempt"
@@ -239,51 +238,33 @@ EOL
     msg "configuring_startup"
     exec_with_retry "cat > /piphi-network/start-piphi.sh << 'EOL'
 #!/bin/bash
+# Helper script – manual PiPhi start inside ubuntu-piphi
+cd /piphi-network
 dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
 sleep 10
-cd /piphi-network
-docker compose pull
-docker compose up -d
-EOL" || { msg "daemon_error"; exit 1; }
-    exec_with_retry "chmod +x /piphi-network/start-piphi.sh" || { msg "daemon_error"; exit 1; }
-
-    msg "starting_daemon"
-    exec_with_retry "/piphi-network/start-piphi.sh" || { msg "daemon_error"; exit 1; }
-
-    msg "waiting_panel"
-    for i in {1..12}; do
-        if exec_with_retry "nc -z 127.0.0.1 31415"; then
-            msg "panel_success"
-            break
-        fi
-        msg "waiting_progress" $((i*5))
-        sleep 5
-        if [ "$i" -eq 12 ]; then
-            msg "panel_error"
-            exit 1
-        fi
-    done
-
-    balena restart "$CONTAINER_NAME"
+echo \"Now run (inside ubuntu-piphi):\"
+echo \"  cd /piphi-network\"
+echo \"  docker compose -f docker-compose.yml up -d db grafana\"
+echo \"  docker compose -f docker-compose.yml up -d software watchtower\"
+EOL" || { msg "docker_error"; exit 1; }
+    exec_with_retry "chmod +x /piphi-network/start-piphi.sh" || { msg "docker_error"; exit 1; }
 
     msg "install_complete"
     msg "check_ps"
-    msg "gps_check"
     msg "logs_check"
-    echo "Uwaga: pierwszy GPS fix może trwać 1-5 minut (na zewnątrz)."
 }
 
 # ===== MENU =====
 
 msg "separator"
 if [ "$LANGUAGE" = "pl" ]; then
-    echo "Skrypt instalacji PiPhi na SenseCAP M1 (balenaOS)"
-    echo "1 - Instaluj / przeinstaluj PiPhi"
+    echo "Skrypt przygotowania PiPhi na SenseCAP M1 (balenaOS)"
+    echo "1 - Przygotuj / przeinstaluj PiPhi (bez automatycznego startu)"
     echo "2 - Wyjście"
     echo "3 - Zmień język (PL/EN)"
 else
-    echo "PiPhi installation script for SenseCAP M1 (balenaOS)"
-    echo "1 - Install / reinstall PiPhi"
+    echo "PiPhi preparation script for SenseCAP M1 (balenaOS)"
+    echo "1 - Prepare / reinstall PiPhi (no automatic start)"
     echo "2 - Exit"
     echo "3 - Change language (PL/EN)"
 fi
