@@ -54,7 +54,7 @@ fi
 
 URL="http://${SENSECAP_HOST}:${SENSECAP_PORT}/"
 SSH_TARGET="${SENSECAP_SSH_USER}@${SENSECAP_HOST}"
-SSH_OPTS="-p ${SENSECAP_SSH_PORT} -i ${SSH_KEY_PATH} -o BatchMode=yes -o ConnectTimeout=10"
+SSH_OPTS="-p ${SENSECAP_SSH_PORT} -i ${SSH_KEY_PATH} -o IdentitiesOnly=yes -o ConnectTimeout=10"
 
 BOOT_DELAY="${BOOT_DELAY:-0}"
 RETRY_DELAY="${RETRY_DELAY:-30}"
