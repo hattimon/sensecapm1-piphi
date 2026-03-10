@@ -24,7 +24,8 @@ confirm() {
   local prompt="$1"
   local default="${2:-y}"
   local ans
-  read -rp "$(echo -e "${YELLOW}$prompt [y/n] (domyślnie: $default): ${RESET}")" ans
+  echo -ne "${YELLOW}$prompt [y/n] (domyślnie: $default): ${RESET}"
+  read ans
   ans="${ans:-$default}"
   if [[ "$ans" =~ ^[Yy]$ ]]; then
     return 0
@@ -78,7 +79,7 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 
 # =========================
-# SEKCJA 2: Ścieżki, IP i port
+# SEKCJA 2: Ścieżki, IP SenseCAP i port PiPhi
 # =========================
 section "2. Ścieżki, IP SenseCAP i port PiPhi"
 
@@ -87,29 +88,36 @@ WATCHDOG_PATH_DEFAULT="$HOME/piphi-watchdog.sh"
 CONF_DIR="$HOME/.config"
 CONF_FILE="$CONF_DIR/piphi-watchdog.conf"
 
+SENSECAP_HOST_DEFAULT="192.168.0.56"
+PIPHI_PORT_DEFAULT="3000"
+
 if [[ $AUTO_MODE -eq 1 ]]; then
   SSH_KEY_PATH="$KEY_PATH_DEFAULT"
   WATCHDOG_PATH="$WATCHDOG_PATH_DEFAULT"
-  SENSECAP_HOST_DEFAULT="192.168.0.56"
-  PIPHI_PORT_DEFAULT="3000"
+  SENSECAP_HOST="$SENSECAP_HOST_DEFAULT"
+  PIPHI_PORT="$PIPHI_PORT_DEFAULT"
 else
-  read -rp "$(echo -e \"${YELLOW}Podaj ścieżkę do klucza SSH dla sensecap_root [domyślnie: $KEY_PATH_DEFAULT]: ${RESET}\")" SSH_KEY_PATH
+  echo -ne "${YELLOW}Podaj ścieżkę do klucza SSH dla sensecap_root [domyślnie: $KEY_PATH_DEFAULT]: ${RESET}"
+  read SSH_KEY_PATH
   SSH_KEY_PATH="${SSH_KEY_PATH:-$KEY_PATH_DEFAULT}"
 
-  read -rp "$(echo -e \"${YELLOW}Podaj ścieżkę do skryptu piphi-watchdog.sh [domyślnie: $WATCHDOG_PATH_DEFAULT]: ${RESET}\")" WATCHDOG_PATH
+  echo -ne "${YELLOW}Podaj ścieżkę do skryptu piphi-watchdog.sh [domyślnie: $WATCHDOG_PATH_DEFAULT]: ${RESET}"
+  read WATCHDOG_PATH
   WATCHDOG_PATH="${WATCHDOG_PATH:-$WATCHDOG_PATH_DEFAULT}"
 
-  read -rp "$(echo -e \"${YELLOW}IP lub hostname SenseCAP (host balena, gdzie stoi PiPhi) [domyślnie: 192.168.0.56]: ${RESET}\")" SENSECAP_HOST_DEFAULT
-  SENSECAP_HOST_DEFAULT="${SENSECAP_HOST_DEFAULT:-192.168.0.56}"
+  echo -ne "${YELLOW}IP lub hostname SenseCAP (host balena, gdzie stoi PiPhi) [domyślnie: $SENSECAP_HOST_DEFAULT]: ${RESET}"
+  read SENSECAP_HOST
+  SENSECAP_HOST="${SENSECAP_HOST:-$SENSECAP_HOST_DEFAULT}"
 
-  read -rp "$(echo -e \"${YELLOW}Port HTTP panelu PiPhi na SenseCAP [domyślnie: 3000]: ${RESET}\")" PIPHI_PORT_DEFAULT
-  PIPHI_PORT_DEFAULT="${PIPHI_PORT_DEFAULT:-3000}"
+  echo -ne "${YELLOW}Port HTTP panelu PiPhi na SenseCAP [domyślnie: $PIPHI_PORT_DEFAULT]: ${RESET}"
+  read PIPHI_PORT
+  PIPHI_PORT="${PIPHI_PORT:-$PIPHI_PORT_DEFAULT}"
 fi
 
 SSH_KEY_PATH="${SSH_KEY_PATH:-$KEY_PATH_DEFAULT}"
 WATCHDOG_PATH="${WATCHDOG_PATH:-$WATCHDOG_PATH_DEFAULT}"
-SENSECAP_HOST="${SENSECAP_HOST_DEFAULT:-192.168.0.56}"
-PIPHI_PORT="${PIPHI_PORT_DEFAULT:-3000}"
+SENSECAP_HOST="${SENSECAP_HOST:-$SENSECAP_HOST_DEFAULT}"
+PIPHI_PORT="${PIPHI_PORT:-$PIPHI_PORT_DEFAULT}"
 
 if [[ ! -f "$SSH_KEY_PATH" ]]; then
   log "${RED}Plik klucza SSH nie istnieje: $SSH_KEY_PATH${RESET}"
@@ -125,21 +133,25 @@ log "${GREEN}SenseCAP host: ${BOLD}$SENSECAP_HOST${RESET}"
 log "${GREEN}Port panelu PiPhi: ${BOLD}$PIPHI_PORT${RESET}"
 
 # =========================
-# SEKCJA 3: Zapis konfiguracji piphi-watchdog.conf
+# SEKCJA 3: Zapis konfiguracji do ~/.config/piphi-watchdog.conf
 # =========================
 section "3. Zapis konfiguracji do $CONF_FILE"
 
-# Domyślne czasy (możesz później zmienić w pliku)
 if [[ $AUTO_MODE -eq 1 ]]; then
-  BOOT_DELAY="300"        # sekundy (5 min)
-  RETRY_DELAY="60"        # sekundy (1 min)
-  RESTORE_INTERVAL="600"  # sekundy (10 min)
+  BOOT_DELAY="300"
+  RETRY_DELAY="60"
+  RESTORE_INTERVAL="600"
 else
-  read -rp "$(echo -e \"${YELLOW}Opóźnienie po starcie SenseCAP przed próbą startu panelu (sekundy, domyślnie 300): ${RESET}\")" BOOT_DELAY
+  echo -ne "${YELLOW}Opóźnienie po starcie SenseCAP przed próbą startu panelu (sekundy, domyślnie 300): ${RESET}"
+  read BOOT_DELAY
   BOOT_DELAY="${BOOT_DELAY:-300}"
-  read -rp "$(echo -e \"${YELLOW}Przerwa między kolejnymi próbami naprawy (sekundy, domyślnie 60): ${RESET}\")" RETRY_DELAY
+
+  echo -ne "${YELLOW}Przerwa między kolejnymi próbami naprawy (sekundy, domyślnie 60): ${RESET}"
+  read RETRY_DELAY
   RETRY_DELAY="${RETRY_DELAY:-60}"
-  read -rp "$(echo -e \"${YELLOW}Okres między wywołaniami watchdoga (sekundy, domyślnie 600): ${RESET}\")" RESTORE_INTERVAL
+
+  echo -ne "${YELLOW}Okres między wywołaniami watchdoga (sekundy, domyślnie 600): ${RESET}"
+  read RESTORE_INTERVAL
   RESTORE_INTERVAL="${RESTORE_INTERVAL:-600}"
 fi
 
@@ -150,19 +162,17 @@ SENSECAP_PORT="$PIPHI_PORT"
 SENSECAP_SSH_USER="sensecap_root"
 SENSECAP_SSH_PORT="22222"
 
-# Czas w sekundach
-BOOT_DELAY="$BOOT_DELAY"        # czas po starcie / restarcie sensecap zanim spróbujemy stawiać kontenery
-RETRY_DELAY="$RETRY_DELAY"      # opóźnienie między kolejnymi próbami naprawy
-RESTORE_INTERVAL="$RESTORE_INTERVAL"  # okres między uruchomieniami watchdoga (systemd timer)
+BOOT_DELAY="$BOOT_DELAY"
+RETRY_DELAY="$RETRY_DELAY"
+RESTORE_INTERVAL="$RESTORE_INTERVAL"
 
-# Ścieżka do klucza SSH, używanego przez ssh-agent
 SSH_KEY_PATH="$SSH_KEY_PATH"
 EOF
 
 log "${GREEN}Konfiguracja zapisana w: ${BOLD}$CONF_FILE${RESET}"
 
 # =========================
-# SEKCJA 4: Generacja prostego piphi-watchdog.sh (jeśli nie istnieje)
+# SEKCJA 4: Generacja szablonu piphi-watchdog.sh (jeśli brak)
 # =========================
 section "4. Generacja szablonu piphi-watchdog.sh (jeśli brak)"
 
@@ -200,7 +210,7 @@ fi
 
 log "Panel PiPhi NIE odpowiada. Próba naprawy..."
 
-# 2. Próba połączenia SSH (ssh użyje ssh-agent)
+# 2. Próba połączenia SSH (ssh użyje ssh-agent, bez -i)
 SSH_TARGET="${SENSECAP_SSH_USER}@${SENSECAP_HOST}"
 SSH_OPTS="-p ${SENSECAP_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=10"
 
@@ -214,7 +224,6 @@ log "Połączenie SSH do SenseCAP działa. Czekam ${BOOT_DELAY}s przed restartem
 sleep "$BOOT_DELAY"
 
 # 3. Restart kontenerów / próba postawienia panelu
-# Tu dostosuj komendy do własnego środowiska
 log "Próbuję odświeżyć kontenery PiPhi na SenseCAP..."
 
 ssh $SSH_OPTS "$SSH_TARGET" 'balena ps' >> "$LOGFILE" 2>&1 || log "balena ps zwróciło błąd (mogło jeszcze nie wstać)."
@@ -344,8 +353,6 @@ log "${GREEN}Zapisano: $PIPHI_SERVICE${RESET}"
 # =========================
 section "9. Konfiguracja piphi-watchdog.timer"
 
-# Używamy RESTORE_INTERVAL z configu (sekundy)
-# Timer będzie ustawiony w jednostkach systemd (s, min, h). Przekonwertujemy.
 INTERVAL_SEC="$RESTORE_INTERVAL"
 if [[ "$INTERVAL_SEC" -lt 60 ]]; then
   ON_ACTIVE="${INTERVAL_SEC}s"
@@ -354,8 +361,6 @@ else
   ON_ACTIVE="${MIN}min"
 fi
 
-# OnBootSec – opóźnienie pierwszego triggera timera,
-# użyjemy BOOT_DELAY w sekundach.
 BOOT_DELAY_SEC="$BOOT_DELAY"
 if [[ "$BOOT_DELAY_SEC" -lt 60 ]]; then
   ON_BOOT="${BOOT_DELAY_SEC}s"
