@@ -22,9 +22,9 @@ log() {
 }
 
 # ----- Backoff + reboot state -----
-ATTEMPTS=0        # kolejne nieudane próby przy SSH OK
-NEXT_TS=0         # unix ts do którego pauzujemy próby
-REBOOT_LEVEL=0    # 0=jeszcze nie rebootowaliśmy, 1=po 1 reboocie, 2=po 2, >=3=tryb 24h
+ATTEMPTS=0
+NEXT_TS=0
+REBOOT_LEVEL=0
 
 if [[ -f "$STATE_FILE" ]]; then
   # shellcheck disable=SC1090
@@ -80,11 +80,11 @@ if ! ssh $SSH_OPTS "$SSH_TARGET" "echo 'SSH OK'" >/dev/null 2>&1; then
 fi
 
 if [[ "$BOOT_DELAY" -gt 0 ]]; then
-  log "Połączenie SSH działa. Czekam ${BOOT_DELAY}s przed restartem kontenerów..."
+  log "Połączenie SSH działa. Czekam ${BOOT_DELAY}s przed próbą naprawy kontenerów..."
   sleep "$BOOT_DELAY"
 fi
 
-log "Próbuję odświeżyć kontenery PiPhi wewnątrz ubuntu-piphi..."
+log "Próbuję odtworzyć środowisko PiPhi wewnątrz ubuntu-piphi (dokładnie jak ręcznie)..."
 
 ssh $SSH_OPTS "$SSH_TARGET" '
   set -e
@@ -92,28 +92,39 @@ ssh $SSH_OPTS "$SSH_TARGET" '
   echo "===> balena ps (host) dla diagnostyki:"
   balena ps || true
 
-  echo "===> Sprawdzam Docker wewnątrz ubuntu-piphi..."
-  if ! balena exec ubuntu-piphi docker info >/dev/null 2>&1; then
-    echo "Docker w ubuntu-piphi NIE działa. Uruchamiam start-piphi.sh..."
-    if balena exec ubuntu-piphi bash -lc "[ -d /piphi-network ]"; then
-      balena exec ubuntu-piphi bash -lc "cd /piphi-network && ./start-piphi.sh" || true
-    elif [ -d /mnt/data/piphi ]; then
-      cd /mnt/data/piphi && ./start-piphi.sh || true
-    fi
-  else
-    echo "Docker w ubuntu-piphi działa."
+  echo "===> Sprawdzam, czy ubuntu-piphi jest UP..."
+  if ! balena ps | grep -q "ubuntu-piphi"; then
+    echo "ubuntu-piphi nie działa – próbuję go uruchomić..."
+    balena restart ubuntu-piphi || true
+    sleep 10
   fi
 
-  echo "===> Restartuję kontenery PiPhi wewnątrz ubuntu-piphi (db, grafana, piphi-network-image, watchtower)..."
-  balena exec ubuntu-piphi docker restart db 2>&1 || true
-  balena exec ubuntu-piphi docker restart grafana piphi-network-image watchtower 2>&1 || true
-' >> "$LOGFILE" 2>&1 || log "Błąd podczas restartu / startu kontenerów PiPhi wewnątrz ubuntu-piphi."
+  echo "===> Sprawdzam dockerd w ubuntu-piphi (docker info)..."
+  if ! balena exec ubuntu-piphi docker info >/dev/null 2>&1; then
+    echo "Docker w ubuntu-piphi NIE działa – uruchamiam tak jak ręcznie."
+    if balena exec ubuntu-piphi bash -lc "[ -d /piphi-network ]"; then
+      echo "Uruchamiam: cd /piphi-network && dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &"
+      balena exec ubuntu-piphi bash -lc "cd /piphi-network && dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &"
+      sleep 10
+      echo "Uruchamiam: ./start-piphi.sh (docker compose up ...)"
+      balena exec ubuntu-piphi bash -lc "cd /piphi-network && ./start-piphi.sh" || true
+    elif [ -d /mnt/data/piphi ]; then
+      echo "Fallback: /mnt/data/piphi istnieje – uruchamiam tam start-piphi.sh"
+      balena exec ubuntu-piphi bash -lc "cd /mnt/data/piphi && ./start-piphi.sh" || true
+    else
+      echo "Brak katalogu /piphi-network i /mnt/data/piphi – nie wiem, gdzie jest instalacja PiPhi."
+    fi
+  else
+    echo "Docker w ubuntu-piphi działa – sprawdzam kontenery PiPhi..."
+    balena exec ubuntu-piphi docker ps || true
+  fi
+' >> "$LOGFILE" 2>&1 || log "Błąd podczas odtwarzania środowiska PiPhi wewnątrz ubuntu-piphi."
 
 log "Odczekuję ${RETRY_DELAY}s i ponownie sprawdzam panel..."
 sleep "$RETRY_DELAY"
 
 if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
-  log "Panel PiPhi ponownie działa po restarcie. Resetuję stan."
+  log "Panel PiPhi ponownie działa po naprawie. Resetuję stan."
   ATTEMPTS=0
   NEXT_TS=0
   REBOOT_LEVEL=0
@@ -121,7 +132,7 @@ if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
   exit 0
 fi
 
-log "Panel PiPhi nadal nie działa po próbie restartu."
+log "Panel PiPhi nadal nie działa po próbie naprawy."
 
 # ----- aktualizacja backoffu i rebootów -----
 
@@ -135,9 +146,8 @@ REBOOT_DONE=0
 DELAY_MIN=0
 
 if (( REBOOT_LEVEL == 0 )); then
-  # przed pierwszym rebootem: 10, 20, 40, 80, 160, 240 min
   if (( ATTEMPTS >= 3 )); then
-    BLOCK=$(( (ATTEMPTS - 3) / 3 ))  # 0,1,2,...
+    BLOCK=$(( (ATTEMPTS - 3) / 3 ))
     DELAY_MIN=$(( BASE_DELAY_MIN * (1 << BLOCK) ))
     if (( DELAY_MIN > MAX_DELAY_BEFORE_FIRST_REBOOT )); then
       DELAY_MIN=$MAX_DELAY_BEFORE_FIRST_REBOOT
@@ -156,11 +166,10 @@ if (( REBOOT_LEVEL == 0 )); then
     REBOOT_DONE=1
     REBOOT_LEVEL=1
     ATTEMPTS=0
-    DELAY_MIN=$((8*60))   # po pierwszym reboocie pauza 8h
+    DELAY_MIN=$((8*60))
   fi
 
 elif (( REBOOT_LEVEL == 1 )); then
-  # po pierwszym reboocie: min 8h
   DELAY_MIN=$((8*60))
   log "Jesteśmy po pierwszym reboocie. Ustawiam minimalny backoff 8h."
 
@@ -174,11 +183,10 @@ elif (( REBOOT_LEVEL == 1 )); then
     REBOOT_DONE=1
     REBOOT_LEVEL=2
     ATTEMPTS=0
-    DELAY_MIN=$((16*60))  # po drugim reboocie pauza 16h
+    DELAY_MIN=$((16*60))
   fi
 
 elif (( REBOOT_LEVEL == 2 )); then
-  # po drugim reboocie: min 16h
   DELAY_MIN=$((16*60))
   log "Jesteśmy po drugim reboocie. Ustawiam minimalny backoff 16h."
 
@@ -192,11 +200,10 @@ elif (( REBOOT_LEVEL == 2 )); then
     REBOOT_DONE=1
     REBOOT_LEVEL=3
     ATTEMPTS=0
-    DELAY_MIN=$((24*60))  # potem max raz na 24h
+    DELAY_MIN=$((24*60))
   fi
 
 else
-  # REBOOT_LEVEL >= 3: maksymalnie jeden reboot na 24h
   DELAY_MIN=$((24*60))
   log "Tryb podtrzymania: REBOOT_LEVEL>=3, maksymalnie jeden reboot na 24h."
   if (( ATTEMPTS >= 3 )); then
