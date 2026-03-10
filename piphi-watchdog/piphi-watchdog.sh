@@ -41,18 +41,32 @@ fi
 log "Połączenie SSH do SenseCAP działa. Czekam ${BOOT_DELAY}s przed restartem kontenerów..."
 sleep "$BOOT_DELAY"
 
-# 3. Restart kontenerów PiPhi wewnątrz ubuntu-piphi
+# 3. Start Dockera + restart kontenerów PiPhi wewnątrz ubuntu-piphi
 log "Próbuję odświeżyć kontenery PiPhi wewnątrz ubuntu-piphi..."
 
-# Podgląd kontenerów na hoście (debug)
-ssh $SSH_OPTS "$SSH_TARGET" 'balena ps' >> "$LOGFILE" 2>&1 || log "balena ps na hoście zwróciło błąd (może jeszcze nie wstał)."
-
-# Restart wewnętrznego Dockera w ubuntu-piphi
 ssh $SSH_OPTS "$SSH_TARGET" '
-  echo "Restartuję kontenery PiPhi wewnątrz ubuntu-piphi..."
-  # restart kontenerów w środku ubuntu-piphi
+  set -e
+
+  echo "===> balena ps (host) dla diagnostyki:"
+  balena ps || true
+
+  echo "===> Sprawdzam Docker wewnątrz ubuntu-piphi..."
+  if ! balena exec ubuntu-piphi docker info >/dev/null 2>&1; then
+    echo "Docker w ubuntu-piphi NIE działa. Uruchamiam start-piphi.sh..."
+    # próbujemy w obu możliwych lokalizacjach katalogu
+    if balena exec ubuntu-piphi bash -lc "[ -d /piphi-network ]"; then
+      balena exec ubuntu-piphi bash -lc "cd /piphi-network && ./start-piphi.sh" || true
+    elif [ -d /mnt/data/piphi ]; then
+      # stary layout
+      cd /mnt/data/piphi && ./start-piphi.sh || true
+    fi
+  else
+    echo "Docker w ubuntu-piphi działa."
+  fi
+
+  echo "===> Restartuję kontenery PiPhi wewnątrz ubuntu-piphi (db, grafana, piphi-network-image, watchtower)..."
   balena exec ubuntu-piphi docker restart db grafana piphi-network-image watchtower 2>&1 || true
-' >> "$LOGFILE" 2>&1 || log "Błąd podczas restartu kontenerów PiPhi wewnątrz ubuntu-piphi."
+' >> "$LOGFILE" 2>&1 || log "Błąd podczas restartu / startu kontenerów PiPhi wewnątrz ubuntu-piphi."
 
 log "Odczekuję ${RETRY_DELAY}s i ponownie sprawdzam panel..."
 sleep "$RETRY_DELAY"
