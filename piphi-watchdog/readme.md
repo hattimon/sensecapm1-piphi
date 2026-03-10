@@ -1,7 +1,7 @@
 # 🛰️ PiPhi Watchdog for SenseCAP M1
 
-![GitHub release](https://img.shields.io/github/v/release/hattimon/sensecapm1-piphi?color=blue&label=Release)   
-![GitHub license](https://img.shields.io/github/license/hattimon/sensecapm1-piphi)   
+![GitHub release](https://img.shields.io/github/v/release/hattimon/sensecapm1-piphi?color=blue&label=Release)
+![GitHub license](https://img.shields.io/github/license/hattimon/sensecapm1-piphi)
 ![GitHub stars](https://img.shields.io/github/stars/hattimon/sensecapm1-piphi?style=social)  
 
 Optional **PiPhi watchdog** that runs on a Raspberry Pi to automatically restore PiPhi panel on your SenseCAP M1 if it goes down (power loss, reboot, container crash).
