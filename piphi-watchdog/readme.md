@@ -22,7 +22,9 @@ The watchdog:
 
 ---
 
-# 📂 Files in this folder
+# 🇬🇧 English documentation {#english}
+
+## 📂 Files in this folder
 
 - **[`piphi-watchdog-setup.sh`](./piphi-watchdog-setup.sh)**  
   Interactive installer that configures the watchdog environment.
@@ -35,9 +37,7 @@ The watchdog:
   - systemd user units:
     - `piphi-watchdog.service`
     - `piphi-watchdog.timer`
-  - main watchdog script `piphi-watchdog.sh`
-
----
+  - main watchdog script `piphi-watchdog.sh` (optional helper to start dockerd; PiPhi services are started manually with docker compose)
 
 - **[`piphi-watchdog.sh`](./piphi-watchdog.sh)**  
   The actual watchdog script executed by systemd.
@@ -51,9 +51,9 @@ The watchdog:
 
 ---
 
-# ⚙️ Prerequisites
+## ⚙️ Prerequisites
 
-## On the Raspberry Pi
+### On the Raspberry Pi
 
 The watchdog host must run a Debian-based system:
 
@@ -78,9 +78,7 @@ You must also have a **working SSH key for `sensecap_root`** that can log into y
 ssh sensecap_root@SENSECAP_IP -p 22222
 ```
 
----
-
-## On the SenseCAP M1
+### On the SenseCAP M1
 
 PiPhi containers must exist and be visible to the `balena` CLI:
 
@@ -95,100 +93,66 @@ PiPhi panel must also be available via HTTP (default port `3000`).
 
 ---
 
-# 🇬🇧 Step 2 – Installing the PiPhi Watchdog on Raspberry Pi
+## Step 2 – Installing the PiPhi Watchdog on Raspberry Pi
 
 This step should be performed **after PiPhi has already been installed on the SenseCAP M1.**
 
----
+### 1 Clone repository
 
-## 1 Clone repository
-
-```
+```bash
 git clone https://github.com/hattimon/sensecapm1-piphi.git
 cd sensecapm1-piphi/piphi-watchdog
 ```
 
----
+### 2 Make installer executable
 
-## 2 Make installer executable
-
-```
+```bash
 chmod +x piphi-watchdog-setup.sh
 ```
 
----
+### 3 Run installer
 
-## 3 Run installer
-
-```
+```bash
 ./piphi-watchdog-setup.sh
 ```
 
 ---
 
-The installer will:
+### What the installer does
 
-1. Validate required tools (`systemd`, `ssh-agent`, `curl`)
-2. Ask for configuration values
+1. Validates required tools (`systemd`, `ssh-agent`, `curl`)
+2. Asks for configuration:
 
-Example prompts:
+- SSH key path (default `~/.ssh/sensecap_root`)
+- Watchdog script path (default `~/piphi-watchdog.sh`)
+- SenseCAP host/IP
+- PiPhi panel port
+- Boot/retry delays, interval
 
-```
-SSH key path (default ~/.ssh/sensecap_root)
-watchdog script location (default ~/piphi-watchdog.sh)
-SenseCAP host IP (default 192.168.0.56)
-PiPhi panel port (default 3000)
-boot delay
-retry delay
-watchdog interval
-```
-
----
-
-Then the script will:
-
-- create configuration file:
+3. Writes configuration:
 
 ```
 ~/.config/piphi-watchdog.conf
 ```
 
-- generate watchdog script if needed
-
-```
-~/piphi-watchdog.sh
-```
-
-- create systemd user service:
-
-```
-ssh-agent.service
-```
-
-- export environment variable:
-
-```
-SSH_AUTH_SOCK
-```
-
-- load the `sensecap_root` SSH key into the agent
-
-- create systemd units:
+4. Generates `piphi-watchdog.sh` (optional helper to start dockerd; PiPhi services are started manually)
+5. Creates `ssh-agent.service` (systemd user)
+6. Exports `SSH_AUTH_SOCK`
+7. Loads the `sensecap_root` key
+8. Creates systemd units:
 
 ```
 piphi-watchdog.service
 piphi-watchdog.timer
 ```
 
----
-
-Each installer section is clearly marked in the terminal:
+Each section is marked in terminal:
 
 ```
 ===== [SECTION] 5. Configuring systemd user service: ssh-agent =====
 ```
 
-If the installer stops unexpectedly, check the log:
+Logs:
 
 ```
 ~/piphi-watchdog-setup.log
@@ -196,67 +160,69 @@ If the installer stops unexpectedly, check the log:
 
 ---
 
-# 🔄 What the watchdog actually does
+### What the watchdog does
 
-Once installed:
+- `ssh-agent.service` holds the SSH key
+- `piphi-watchdog.timer` runs periodically
+- `piphi-watchdog.service` executes `piphi-watchdog.sh` which:
 
-### ssh-agent.service
+1. Loads configuration
+2. Checks PiPhi panel via HTTP
+3. If panel is UP → exit
+4. If panel is DOWN:
+   - checks SSH to `sensecap_root@SENSECAP_HOST:22222`
+   - waits `BOOT_DELAY`
+   - runs `balena ps`
+   - restarts containers (`db`, `grafana`, `watchtower`, `piphi-network-image`)
+   - waits `RETRY_DELAY` and rechecks
 
-Runs a persistent SSH agent for the `pi` user and stores the `sensecap_root` key.
+Logs:
+
+- installation: `~/piphi-watchdog-setup.log`
+- runtime: `~/piphi-watchdog-run.log`
 
 ---
 
-### piphi-watchdog.timer
+# 🇵🇱 Dokumentacja po polsku {#polski}
 
-Triggers periodic execution of the watchdog service.
+## 📂 Pliki w folderze
+
+- **[`piphi-watchdog-setup.sh`](./piphi-watchdog-setup.sh)**  
+  Skrypt instalacyjny konfigurujący watchdog.
+
+  Tworzy i konfiguruje:
+
+  - `ssh-agent` (usługa systemd user)
+  - klucz SSH `sensecap_root`
+  - plik konfiguracji `~/.config/piphi-watchdog.conf`
+  - jednostki systemd:
+    - `piphi-watchdog.service`
+    - `piphi-watchdog.timer`
+  - główny skrypt watchdog `piphi-watchdog.sh` (pomocniczy do startu dockerd; same usługi PiPhi uruchamiasz ręcznie poleceniami `docker compose`)
+
+- **[`piphi-watchdog.sh`](./piphi-watchdog.sh)**  
+  Skrypt wywoływany przez systemd.
+
+  Robi:
+
+  - wczytuje konfigurację z `~/.config/piphi-watchdog.conf`
+  - sprawdza panel PiPhi HTTP
+  - łączy się SSH do SenseCAP
+  - restartuje kontenery w razie potrzeby
 
 ---
 
-### piphi-watchdog.service
+## ⚙️ Wymagania
 
-Executes:
+### Na Raspberry Pi
 
-```
-piphi-watchdog.sh
-```
+- system Debian-based: Raspberry Pi OS, Ubuntu, Debian
+- narzędzia: `systemd`, `bash`, `ssh`, `ssh-agent`, `ssh-add`, `curl`
+- działający klucz SSH dla `sensecap_root`
 
-The script performs the following steps:
+### Na SenseCAP M1
 
-1️⃣ Load configuration:
-
-```
-~/.config/piphi-watchdog.conf
-```
-
-2️⃣ Check the PiPhi panel:
-
-```
-http://SENSECAP_HOST:SENSECAP_PORT
-```
-
-3️⃣ If panel is **UP**
-
-→ exit
-
-4️⃣ If panel is **DOWN**
-
-- test SSH connection:
-
-```
-sensecap_root@SENSECAP_HOST:22222
-```
-
-(using ssh-agent, **no password prompt**)
-
-- wait `BOOT_DELAY` seconds
-
-- run:
-
-```
-balena ps
-```
-
-- restart PiPhi containers:
+PiPhi kontenery:
 
 ```
 db
@@ -265,197 +231,113 @@ watchtower
 piphi-network-image
 ```
 
-- wait `RETRY_DELAY`
-
-- check panel again
+Panel PiPhi na HTTP (domyślnie port `3000`)
 
 ---
 
-# 📄 Logs
+## Instalacja watchdog (Raspberry Pi)
 
-Installer log:
+### 1. Sklonuj repozytorium
 
-```
-~/piphi-watchdog-setup.log
-```
-
-Watchdog runtime log:
-
-```
-~/piphi-watchdog-run.log
-```
-
----
-
-# 🇵🇱 Instalacja PiPhi Watchdog na Raspberry Pi
-
-Ten krok wykonuje się **po zainstalowaniu PiPhi na SenseCAP M1**.
-
----
-
-## 1 Sklonuj repozytorium
-
-```
+```bash
 git clone https://github.com/hattimon/sensecapm1-piphi.git
 cd sensecapm1-piphi/piphi-watchdog
 ```
 
----
+### 2. Nadaj prawa wykonywalne
 
-## 2 Nadaj prawa wykonywalne
-
-```
+```bash
 chmod +x piphi-watchdog-setup.sh
 ```
 
----
+### 3. Uruchom instalator
 
-## 3 Uruchom instalator
-
-```
+```bash
 ./piphi-watchdog-setup.sh
 ```
 
 ---
 
-Skrypt instalacyjny:
+### Co robi instalator
 
-1. sprawdzi wymagane narzędzia (`systemd`, `ssh-agent`, `curl`)
-2. zapyta o parametry konfiguracji:
+1. Sprawdza środowisko (`systemd`, `ssh-agent`, `curl`)
+2. Pyta o parametry:
 
-- ścieżkę do klucza SSH (`~/.ssh/sensecap_root`)
-- lokalizację skryptu watchdog (`~/piphi-watchdog.sh`)
-- adres SenseCAP
-- port panelu PiPhi
+- klucz SSH `~/.ssh/sensecap_root`
+- lokalizacja skryptu watchdog `~/piphi-watchdog.sh`
+- adres IP/host SenseCAP
+- port HTTP panelu PiPhi
 - opóźnienia startowe i retry
 
----
-
-Następnie skrypt:
-
-- zapisze konfigurację do
+3. Tworzy konfigurację:
 
 ```
 ~/.config/piphi-watchdog.conf
 ```
 
-- wygeneruje `piphi-watchdog.sh`
-
-- utworzy usługę:
-
-```
-ssh-agent.service
-```
-
-- doda zmienną:
-
-```
-SSH_AUTH_SOCK
-```
-
-- załaduje klucz `sensecap_root` do `ssh-agent`
-
-- utworzy jednostki systemd:
+4. Generuje `piphi-watchdog.sh` (pomocniczy start dockerd; PiPhi startujesz ręcznie)
+5. Tworzy `ssh-agent.service`
+6. Ustawia `SSH_AUTH_SOCK`
+7. Ładuje klucz `sensecap_root`
+8. Tworzy jednostki systemd:
 
 ```
 piphi-watchdog.service
 piphi-watchdog.timer
 ```
 
----
-
-# 🔄 Co robi watchdog
-
-Po instalacji:
-
-### ssh-agent.service
-
-przechowuje klucz SSH do SenseCAP.
+Logi: `~/piphi-watchdog-setup.log`
 
 ---
 
-### piphi-watchdog.timer
+### Co robi watchdog
 
-cyklicznie uruchamia watchdog.
+- `ssh-agent.service` przechowuje klucz SSH
+- `piphi-watchdog.timer` uruchamia watchdog cyklicznie
+- `piphi-watchdog.service` uruchamia `piphi-watchdog.sh`:
 
----
+1. Wczytuje konfigurację
+2. Sprawdza panel PiPhi przez HTTP
+3. Jeśli UP → kończy
+4. Jeśli DOWN:
+   - testuje SSH
+   - czeka `BOOT_DELAY`
+   - restartuje kontenery `db`, `grafana`, `watchtower`, `piphi-network-image`
+   - czeka `RETRY_DELAY` i ponownie sprawdza
 
-### piphi-watchdog.service
-
-uruchamia skrypt:
-
-```
-piphi-watchdog.sh
-```
-
-Skrypt:
-
-1. wczytuje konfigurację
-2. sprawdza panel PiPhi przez HTTP
-3. jeśli panel działa → kończy
-4. jeśli panel nie działa:
-
-- sprawdza SSH do SenseCAP
-- czeka `BOOT_DELAY`
-- restartuje kontenery:
-
-```
-db
-grafana
-watchtower
-piphi-network-image
-```
-
-- czeka `RETRY_DELAY`
-- ponownie sprawdza panel
+Logi runtime: `~/piphi-watchdog-run.log`
 
 ---
 
-# 📄 Logi
+# 🧹 Usuwanie / uninstall
 
-Instalacja:
+Wyłącz usługi:
 
-```
-~/piphi-watchdog-setup.log
-```
-
-Działanie watchdog:
-
-```
-~/piphi-watchdog-run.log
-```
-
----
-
-# 🧹 Uninstall / Usunięcie watchdog
-
-Disable services:
-
-```
+```bash
 systemctl --user disable --now piphi-watchdog.timer ssh-agent.service
 ```
 
-Remove systemd units:
+Usuń jednostki:
 
-```
+```bash
 rm -f ~/.config/systemd/user/piphi-watchdog.service
 rm -f ~/.config/systemd/user/piphi-watchdog.timer
 rm -f ~/.config/systemd/user/ssh-agent.service
 ```
 
-Reload systemd:
+Przeładuj systemd:
 
-```
+```bash
 systemctl --user daemon-reload
 ```
 
-Optional cleanup:
+Opcjonalnie usuń:
 
-```
+```bash
 rm -f ~/.config/piphi-watchdog.conf
 rm -f ~/piphi-watchdog.sh
 rm -f ~/piphi-watchdog-setup.log
 rm -f ~/piphi-watchdog-run.log
 ```
 
-> Removing `ssh-agent.service` is optional if you use ssh-agent for other SSH tasks.
+> Usuwanie `ssh-agent.service` jest opcjonalne, jeśli używasz ssh-agent do innych celów.
