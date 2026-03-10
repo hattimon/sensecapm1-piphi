@@ -17,8 +17,8 @@ The watchdog:
 
 # 🌐 Language / Język
 
-- 🇬🇧 English documentation
-- 🇵🇱 Dokumentacja po polsku
+- 🇬🇧 [English documentation](#english)
+- 🇵🇱 [Dokumentacja po polsku](#polski)
 
 ---
 
