@@ -1,17 +1,21 @@
 # 🛰️ PiPhi Watchdog for SenseCAP M1
 
-This directory contains an optional **PiPhi watchdog** that runs on a separate Raspberry Pi and automatically restores the PiPhi panel on your SenseCAP M1 when it goes down (power loss, reboot, container crash, etc.).
+![GitHub release](https://img.shields.io/github/v/release/hattimon/sensecapm1-piphi?color=blue&label=Release)
+![GitHub license](https://img.shields.io/github/license/hattimon/sensecapm1-piphi)
+![GitHub stars](https://img.shields.io/github/stars/hattimon/sensecapm1-piphi?style=social)
+
+Optional **PiPhi watchdog** that runs on a Raspberry Pi to automatically restore PiPhi panel on your SenseCAP M1 if it goes down (power loss, reboot, container crash).
 
 The watchdog:
 
-- periodically checks the PiPhi web panel via HTTP
-- if the panel is down, connects to SenseCAP M1 over SSH
-- waits for the device to boot
-- restarts the required balena containers (`db`, `grafana`, `watchtower`, `piphi-network-image`)
-- runs automatically using a `systemd --user` timer on the Raspberry Pi
+- Periodically checks PiPhi web panel via HTTP
+- Connects to SenseCAP M1 over SSH if panel is down
+- Waits for the device boot
+- Restarts required containers (`db`, `grafana`, `watchtower`, `piphi-network-image`)
+- Runs automatically via `systemd --user` timer
 
-> The Raspberry Pi connects to SenseCAP M1 as `sensecap_root` using the existing SSH key.  
-> Adding a new key to SenseCAP balenaOS is blocked by SenseCAP's private cloud, so this watchdog uses the original key loaded into `ssh-agent`.
+> Connects to SenseCAP M1 as `sensecap_root` using existing SSH key.  
+> Adding new key to SenseCAP balenaOS is blocked, so watchdog uses the key already loaded in `ssh-agent`.
 
 ---
 
@@ -22,318 +26,167 @@ The watchdog:
 
 ---
 
+# 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    RPi[Raspberry Pi (watchdog)] -->|SSH| SC[SenseCAP M1]
+    SC -->|balenaEngine| UB[ubuntu-piphi container]
+    UB -->|Docker| PS[PiPhi stack]
+```
+
+- **Raspberry Pi** – host watchdoga i `systemd --user` timer  
+- **SenseCAP M1** – urządzenie z balenaOS i PiPhi w kontenerze  
+- **ubuntu-piphi** – kontener przygotowany przez skrypt instalacyjny  
+- **PiPhi stack** – baza danych, Grafana, aplikacja PiPhi, Watchtower  
+
+---
+
 # 🇬🇧 English documentation {#english}
 
-## 📂 Files in this folder
+## 📂 Files
 
-- **[`piphi-watchdog-setup.sh`](./piphi-watchdog-setup.sh)**  
-  Interactive installer that configures the watchdog environment.
+- [`piphi-watchdog-setup.sh`](./piphi-watchdog-setup.sh) – interactive installer
+- [`piphi-watchdog.sh`](./piphi-watchdog.sh) – main watchdog script
 
-  It installs and configures:
-
-  - `ssh-agent` systemd user service
-  - SSH key for `sensecap_root`
-  - configuration file `~/.config/piphi-watchdog.conf`
-  - systemd user units:
-    - `piphi-watchdog.service`
-    - `piphi-watchdog.timer`
-  - main watchdog script `piphi-watchdog.sh` (optional helper to start dockerd; PiPhi services are started manually with docker compose)
-
-- **[`piphi-watchdog.sh`](./piphi-watchdog.sh)**  
-  The actual watchdog script executed by systemd.
-
-  It:
-
-  - reads configuration from `~/.config/piphi-watchdog.conf`
-  - checks the PiPhi panel using HTTP
-  - connects to SenseCAP via SSH
-  - restarts required containers when necessary
+**Note:** `start-piphi.sh` is generated in ubuntu-piphi as a helper to start dockerd. **PiPhi services are started manually** via docker compose.
 
 ---
 
 ## ⚙️ Prerequisites
 
-### On the Raspberry Pi
+**Raspberry Pi host:**
 
-The watchdog host must run a Debian-based system:
+- Debian-based OS (Raspberry Pi OS, Ubuntu, Debian)
+- `systemd`, `bash`, `ssh`, `ssh-agent`, `ssh-add`, `curl`
+- Working SSH key for `sensecap_root` (port 22222)
 
-- Raspberry Pi OS
-- Ubuntu
-- Debian
+**SenseCAP M1:**
 
-Required tools:
-
-```
-systemd
-bash
-ssh
-ssh-agent
-ssh-add
-curl
-```
-
-You must also have a **working SSH key for `sensecap_root`** that can log into your SenseCAP M1:
-
-```
-ssh sensecap_root@SENSECAP_IP -p 22222
-```
-
-### On the SenseCAP M1
-
-PiPhi containers must exist and be visible to the `balena` CLI:
-
-```
-db
-grafana
-watchtower
-piphi-network-image
-```
-
-PiPhi panel must also be available via HTTP (default port `3000`).
+- PiPhi containers (`db`, `grafana`, `watchtower`, `piphi-network-image`)
+- PiPhi panel accessible via HTTP (default port `31415`)
+- Grafana HTTP port `3000`
 
 ---
 
-## Step 2 – Installing the PiPhi Watchdog on Raspberry Pi
-
-This step should be performed **after PiPhi has already been installed on the SenseCAP M1.**
-
-### 1 Clone repository
+## Installation Steps
 
 ```bash
 git clone https://github.com/hattimon/sensecapm1-piphi.git
 cd sensecapm1-piphi/piphi-watchdog
-```
-
-### 2 Make installer executable
-
-```bash
 chmod +x piphi-watchdog-setup.sh
-```
-
-### 3 Run installer
-
-```bash
 ./piphi-watchdog-setup.sh
 ```
 
----
+Installer will:
 
-### What the installer does
-
-1. Validates required tools (`systemd`, `ssh-agent`, `curl`)
-2. Asks for configuration:
-
-- SSH key path (default `~/.ssh/sensecap_root`)
-- Watchdog script path (default `~/piphi-watchdog.sh`)
-- SenseCAP host/IP
-- PiPhi panel port
-- Boot/retry delays, interval
-
-3. Writes configuration:
-
-```
-~/.config/piphi-watchdog.conf
-```
-
-4. Generates `piphi-watchdog.sh` (optional helper to start dockerd; PiPhi services are started manually)
-5. Creates `ssh-agent.service` (systemd user)
-6. Exports `SSH_AUTH_SOCK`
-7. Loads the `sensecap_root` key
-8. Creates systemd units:
-
-```
-piphi-watchdog.service
-piphi-watchdog.timer
-```
-
-Each section is marked in terminal:
-
-```
-===== [SECTION] 5. Configuring systemd user service: ssh-agent =====
-```
-
-Logs:
-
-```
-~/piphi-watchdog-setup.log
-```
+1. Validate environment
+2. Ask for key paths, host IP, ports, delays
+3. Write `~/.config/piphi-watchdog.conf`
+4. Generate `piphi-watchdog.sh` (optional helper for dockerd)
+5. Create `ssh-agent.service` (systemd user)
+6. Export `SSH_AUTH_SOCK`
+7. Load `sensecap_root` key
+8. Create and enable `piphi-watchdog.service` and `.timer`
 
 ---
 
-### What the watchdog does
+## How the watchdog works
 
-- `ssh-agent.service` holds the SSH key
-- `piphi-watchdog.timer` runs periodically
-- `piphi-watchdog.service` executes `piphi-watchdog.sh` which:
-
-1. Loads configuration
-2. Checks PiPhi panel via HTTP
-3. If panel is UP → exit
-4. If panel is DOWN:
-   - checks SSH to `sensecap_root@SENSECAP_HOST:22222`
-   - waits `BOOT_DELAY`
-   - runs `balena ps`
-   - restarts containers (`db`, `grafana`, `watchtower`, `piphi-network-image`)
-   - waits `RETRY_DELAY` and rechecks
+1. Loads `~/.config/piphi-watchdog.conf`
+2. Checks PiPhi panel via HTTP (`http://SENSECAP_HOST:31415/`)
+3. If UP → exit
+4. If DOWN:
+   - SSH to `sensecap_root@SENSECAP_HOST:22222` using ssh-agent
+   - Wait `BOOT_DELAY`
+   - Run `balena ps`
+   - Restart containers (`db`, `grafana`, `watchtower`, `piphi-network-image`)
+   - Wait `RETRY_DELAY` and recheck
 
 Logs:
 
-- installation: `~/piphi-watchdog-setup.log`
-- runtime: `~/piphi-watchdog-run.log`
+- installer: `~/piphi-watchdog-setup.log`  
+- watchdog runtime: `~/piphi-watchdog-run.log`
 
 ---
 
 # 🇵🇱 Dokumentacja po polsku {#polski}
 
-## 📂 Pliki w folderze
+## 📂 Pliki
 
-- **[`piphi-watchdog-setup.sh`](./piphi-watchdog-setup.sh)**  
-  Skrypt instalacyjny konfigurujący watchdog.
+- [`piphi-watchdog-setup.sh`](./piphi-watchdog-setup.sh) – instalator
+- [`piphi-watchdog.sh`](./piphi-watchdog.sh) – główny skrypt watchdoga
 
-  Tworzy i konfiguruje:
-
-  - `ssh-agent` (usługa systemd user)
-  - klucz SSH `sensecap_root`
-  - plik konfiguracji `~/.config/piphi-watchdog.conf`
-  - jednostki systemd:
-    - `piphi-watchdog.service`
-    - `piphi-watchdog.timer`
-  - główny skrypt watchdog `piphi-watchdog.sh` (pomocniczy do startu dockerd; same usługi PiPhi uruchamiasz ręcznie poleceniami `docker compose`)
-
-- **[`piphi-watchdog.sh`](./piphi-watchdog.sh)**  
-  Skrypt wywoływany przez systemd.
-
-  Robi:
-
-  - wczytuje konfigurację z `~/.config/piphi-watchdog.conf`
-  - sprawdza panel PiPhi HTTP
-  - łączy się SSH do SenseCAP
-  - restartuje kontenery w razie potrzeby
+**Uwaga:** `start-piphi.sh` tworzony jest w kontenerze ubuntu-piphi jako pomocniczy do startu dockerd. **Usługi PiPhi uruchamiasz ręcznie** za pomocą `docker compose`.
 
 ---
 
 ## ⚙️ Wymagania
 
-### Na Raspberry Pi
+**Raspberry Pi:**
 
-- system Debian-based: Raspberry Pi OS, Ubuntu, Debian
+- system Debian-based (Raspberry Pi OS, Ubuntu, Debian)
 - narzędzia: `systemd`, `bash`, `ssh`, `ssh-agent`, `ssh-add`, `curl`
-- działający klucz SSH dla `sensecap_root`
+- działający klucz SSH dla `sensecap_root` (port 22222)
 
-### Na SenseCAP M1
+**SenseCAP M1:**
 
-PiPhi kontenery:
-
-```
-db
-grafana
-watchtower
-piphi-network-image
-```
-
-Panel PiPhi na HTTP (domyślnie port `3000`)
+- kontenery PiPhi (`db`, `grafana`, `watchtower`, `piphi-network-image`)
+- panel PiPhi dostępny przez HTTP (domyślnie port `31415`)  
+- panel Grafana (domyślnie port `3000`)
 
 ---
 
-## Instalacja watchdog (Raspberry Pi)
-
-### 1. Sklonuj repozytorium
+## Instalacja
 
 ```bash
 git clone https://github.com/hattimon/sensecapm1-piphi.git
 cd sensecapm1-piphi/piphi-watchdog
-```
-
-### 2. Nadaj prawa wykonywalne
-
-```bash
 chmod +x piphi-watchdog-setup.sh
-```
-
-### 3. Uruchom instalator
-
-```bash
 ./piphi-watchdog-setup.sh
 ```
 
----
+Skrypt:
 
-### Co robi instalator
-
-1. Sprawdza środowisko (`systemd`, `ssh-agent`, `curl`)
-2. Pyta o parametry:
-
-- klucz SSH `~/.ssh/sensecap_root`
-- lokalizacja skryptu watchdog `~/piphi-watchdog.sh`
-- adres IP/host SenseCAP
-- port HTTP panelu PiPhi
-- opóźnienia startowe i retry
-
-3. Tworzy konfigurację:
-
-```
-~/.config/piphi-watchdog.conf
-```
-
-4. Generuje `piphi-watchdog.sh` (pomocniczy start dockerd; PiPhi startujesz ręcznie)
+1. Sprawdza środowisko
+2. Pyta o ścieżki klucza, hosta, porty i opóźnienia
+3. Tworzy `~/.config/piphi-watchdog.conf`
+4. Generuje `piphi-watchdog.sh` (pomocniczy do dockerd)
 5. Tworzy `ssh-agent.service`
-6. Ustawia `SSH_AUTH_SOCK`
+6. Eksportuje `SSH_AUTH_SOCK`
 7. Ładuje klucz `sensecap_root`
-8. Tworzy jednostki systemd:
-
-```
-piphi-watchdog.service
-piphi-watchdog.timer
-```
-
-Logi: `~/piphi-watchdog-setup.log`
+8. Tworzy i włącza `piphi-watchdog.service` i `.timer`
 
 ---
 
-### Co robi watchdog
-
-- `ssh-agent.service` przechowuje klucz SSH
-- `piphi-watchdog.timer` uruchamia watchdog cyklicznie
-- `piphi-watchdog.service` uruchamia `piphi-watchdog.sh`:
+## Jak działa watchdog
 
 1. Wczytuje konfigurację
-2. Sprawdza panel PiPhi przez HTTP
+2. Sprawdza panel PiPhi HTTP (`http://SENSECAP_HOST:31415/`)
 3. Jeśli UP → kończy
 4. Jeśli DOWN:
-   - testuje SSH
-   - czeka `BOOT_DELAY`
-   - restartuje kontenery `db`, `grafana`, `watchtower`, `piphi-network-image`
-   - czeka `RETRY_DELAY` i ponownie sprawdza
+   - SSH do `sensecap_root@SENSECAP_HOST:22222`
+   - Czeka `BOOT_DELAY`
+   - Uruchamia `balena ps`
+   - Restartuje kontenery (`db`, `grafana`, `watchtower`, `piphi-network-image`)
+   - Czeka `RETRY_DELAY` i ponownie sprawdza
 
-Logi runtime: `~/piphi-watchdog-run.log`
+Logi:
+
+- instalacja: `~/piphi-watchdog-setup.log`  
+- runtime: `~/piphi-watchdog-run.log`
 
 ---
 
-# 🧹 Usuwanie / uninstall
-
-Wyłącz usługi:
+# 🧹 Usuwanie / Cleanup
 
 ```bash
 systemctl --user disable --now piphi-watchdog.timer ssh-agent.service
-```
-
-Usuń jednostki:
-
-```bash
 rm -f ~/.config/systemd/user/piphi-watchdog.service
 rm -f ~/.config/systemd/user/piphi-watchdog.timer
 rm -f ~/.config/systemd/user/ssh-agent.service
-```
-
-Przeładuj systemd:
-
-```bash
 systemctl --user daemon-reload
-```
 
-Opcjonalnie usuń:
-
-```bash
 rm -f ~/.config/piphi-watchdog.conf
 rm -f ~/piphi-watchdog.sh
 rm -f ~/piphi-watchdog-setup.log
