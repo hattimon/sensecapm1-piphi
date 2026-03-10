@@ -17,7 +17,7 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOGFILE"
 }
 
-# 1. Ping HTTP panelu PiPhi
+# 1. Sprawdzenie panelu PiPhi (HTTP)
 URL="http://${SENSECAP_HOST}:${SENSECAP_PORT}/"
 log "Sprawdzam panel PiPhi pod adresem: $URL"
 
@@ -28,7 +28,7 @@ fi
 
 log "Panel PiPhi NIE odpowiada. Próba naprawy..."
 
-# 2. Próba połączenia SSH (ssh użyje ssh-agent, bez -i)
+# 2. Sprawdzenie SSH (ssh użyje ssh-agent, bez -i)
 SSH_TARGET="${SENSECAP_SSH_USER}@${SENSECAP_HOST}"
 SSH_OPTS="-p ${SENSECAP_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=10"
 
@@ -41,18 +41,18 @@ fi
 log "Połączenie SSH do SenseCAP działa. Czekam ${BOOT_DELAY}s przed restartem kontenerów..."
 sleep "$BOOT_DELAY"
 
-# 3. Restart kontenerów / próba postawienia panelu
-log "Próbuję odświeżyć kontenery PiPhi na SenseCAP..."
+# 3. Restart kontenerów PiPhi wewnątrz ubuntu-piphi
+log "Próbuję odświeżyć kontenery PiPhi wewnątrz ubuntu-piphi..."
 
-ssh $SSH_OPTS "$SSH_TARGET" 'balena ps' >> "$LOGFILE" 2>&1 || log "balena ps zwróciło błąd (mogło jeszcze nie wstać)."
+# Podgląd kontenerów na hoście (debug)
+ssh $SSH_OPTS "$SSH_TARGET" 'balena ps' >> "$LOGFILE" 2>&1 || log "balena ps na hoście zwróciło błąd (może jeszcze nie wstał)."
 
+# Restart wewnętrznego Dockera w ubuntu-piphi
 ssh $SSH_OPTS "$SSH_TARGET" '
-  echo "Restartuję kontenery PiPhi..."
-  balena restart db || true
-  balena restart grafana || true
-  balena restart watchtower || true
-  balena restart piphi-network-image || true
-' >> "$LOGFILE" 2>&1 || log "Błąd podczas restartu kontenerów."
+  echo "Restartuję kontenery PiPhi wewnątrz ubuntu-piphi..."
+  # restart kontenerów w środku ubuntu-piphi
+  balena exec ubuntu-piphi docker restart db grafana piphi-network-image watchtower 2>&1 || true
+' >> "$LOGFILE" 2>&1 || log "Błąd podczas restartu kontenerów PiPhi wewnątrz ubuntu-piphi."
 
 log "Odczekuję ${RETRY_DELAY}s i ponownie sprawdzam panel..."
 sleep "$RETRY_DELAY"
