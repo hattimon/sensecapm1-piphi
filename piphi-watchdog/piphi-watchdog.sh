@@ -28,7 +28,7 @@ fi
 
 log "Panel PiPhi NIE odpowiada. Próba naprawy..."
 
-# 2. Próba połączenia SSH (ssh użyje ssh-agent, więc BEZ -i)
+# 2. Próba połączenia SSH (ssh użyje ssh-agent, bez -i)
 SSH_TARGET="${SENSECAP_SSH_USER}@${SENSECAP_HOST}"
 SSH_OPTS="-p ${SENSECAP_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=10"
 
