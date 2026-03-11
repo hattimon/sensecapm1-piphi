@@ -330,6 +330,31 @@ docker logs piphi-network-image
 
 ---
 
+# Basic Navigation
+
+## Enter the Ubuntu container on Balena:
+
+```
+balena exec -it ubuntu-piphi bash
+```
+
+### Check containers
+```
+docker ps
+```
+
+## Exit the Ubuntu container back to Balena
+```
+exit
+```
+
+### Check containers
+```
+balena ps
+```
+---
+
+
 # 🇵🇱 Dokumentacja po Polsku
 
 ## 📑 Spis treści
