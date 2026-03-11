@@ -535,25 +535,25 @@ docker logs piphi-network-image
 ```
 ---
 
-### Podstawowe poruszanie
+# Podstawowe poruszanie
 
-# Wejdź do kontenera ubuntu na balena:
+## Wejdź do kontenera ubuntu na balena:
 
 ```
 balena exec -it ubuntu-piphi bash
 ```
 
-# Sprawdź kontenery
+### Sprawdź kontenery
 ```
 docker ps
 ```
 
-# Wyjdź z kontenera ubuntu do balena    
+## Wyjdź z kontenera ubuntu do balena    
 ```
 exit
 ```
 
-# Sprawdź kontenery
+### Sprawdź kontenery
 ```
 balena ps
 ```
