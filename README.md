@@ -352,8 +352,12 @@ exit
 ```
 balena ps
 ```
----
+## If you're not sure whether it's the host or a container, run:
 
+```bash
+lsb_release -a || cat /etc/os-release
+```
+------   
 
 # 🇵🇱 Dokumentacja po Polsku
 
@@ -583,3 +587,8 @@ exit
 balena ps
 ```
 ---
+## Jeśli nie jesteś pewien, czy to host, czy kontener, wpisz:
+
+```bash
+lsb_release -a || cat /etc/os-release
+```
