@@ -330,7 +330,7 @@ docker logs piphi-network-image
 
 ---
 
-# Basic Navigation
+# 🧭 Basic Navigation
 
 ## Enter the Ubuntu container on Balena:
 
@@ -560,7 +560,7 @@ docker logs piphi-network-image
 ```
 ---
 
-# Podstawowe poruszanie
+# 🧭 Podstawowe poruszanie
 
 ## Wejdź do kontenera ubuntu na balena:
 
