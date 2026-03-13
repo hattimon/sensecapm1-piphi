@@ -1,10 +1,10 @@
 #!/bin/bash
 # PiPhi Network Installation Script for SenseCAP M1 (balenaOS)
-# Version: 3.1 (start-piphi.sh: dockerd + PiPhi + GPS)
+# Version: 3.2 (start-piphi.sh: safe dockerd restart + staged PiPhi + GPS)
 # - Prepares /mnt/data/piphi with PiPhi docker-compose.yml
 # - Creates ubuntu-piphi container with /piphi-network bound to /mnt/data/piphi
 # - Installs Docker inside ubuntu-piphi
-# - Creates start-piphi.sh (dockerd + docker compose + gpsd)
+# - Creates start-piphi.sh (defensive dockerd + staged docker compose + gpsd)
 
 INSTALL_DIR="/mnt/data/piphi"
 CONTAINER_NAME="ubuntu-piphi"
@@ -241,18 +241,33 @@ EOF
 # Helper script – start PiPhi + GPS inside ubuntu-piphi
 cd /piphi-network
 
-# Start Docker daemon
+echo \"Ensuring old dockerd is not running...\"
+if pgrep dockerd >/dev/null 2>&1; then
+  echo \"Killing old dockerd...\"
+  pkill dockerd || true
+  sleep 5
+fi
+
+echo \"Removing stale /var/run/docker.pid if exists...\"
+rm -f /var/run/docker.pid
+
+echo \"Starting Docker daemon...\"
 dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
 sleep 10
 
-# Start PiPhi stack (dwustopniowo jak w README)
-echo \"Starting PiPhi stack (db + grafana)...\"
+echo \"Checking docker ps...\"
+docker ps || true
+
+echo \"Stage 1 — starting db + grafana...\"
 docker compose -f docker-compose.yml up -d db grafana
+sleep 20
+docker ps || true
 
-echo \"Starting PiPhi software + watchtower...\"
+echo \"Stage 2 — starting PiPhi software + watchtower...\"
 docker compose -f docker-compose.yml up -d software watchtower
+sleep 10
+docker ps || true
 
-# Start GPS daemon
 echo \"Starting GPS...\"
 gpsd /dev/ttyACM0 -F /var/run/gpsd.sock &
 sleep 5
