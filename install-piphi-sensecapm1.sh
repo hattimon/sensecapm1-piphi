@@ -17,7 +17,7 @@ GPS_DEVICE="/dev/ttyACM0"
 if [ -f /tmp/language ]; then
     LANGUAGE=$(cat /tmp/language)
 else
-    LANGUAGE="pl"
+    LANGUAGE="en"
 fi
 
 function set_language() {
@@ -289,12 +289,12 @@ if [ "$LANGUAGE" = "pl" ]; then
     echo "Skrypt przygotowania PiPhi na SenseCAP M1 (balenaOS)"
     echo "1 - Przygotuj / przeinstaluj PiPhi (start-piphi.sh uruchamia PiPhi + GPS)"
     echo "2 - Wyjście"
-    echo "3 - Zmień język (PL/EN)"
+    echo "3 - Zmień język / Change language (Polski PL / English EN)"
 else
     echo "PiPhi preparation script for SenseCAP M1 (balenaOS)"
     echo "1 - Prepare / reinstall PiPhi (start-piphi.sh runs PiPhi + GPS)"
     echo "2 - Exit"
-    echo "3 - Change language (PL/EN)"
+    echo "3 - Change language / Zmień język (Polish PL / English EN)"
 fi
 msg "separator"
 read -rp "Wybierz opcję / Choose option: " REPLY
