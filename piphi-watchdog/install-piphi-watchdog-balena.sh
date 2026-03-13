@@ -1,6 +1,6 @@
 #!/bin/bash
 # PiPhi Watchdog installer for balenaOS (SenseCAP M1)
-# Version: 2.0 (EN default, optional PL)
+# Version: 2.1 (EN default, optional PL, localized logs)
 # - Builds Alpine image with docker-cli + curl + watchdog.sh
 # - Runs piphi-watchdog container on balenaOS host (balena-engine)
 
@@ -68,60 +68,102 @@ PIPHI_PORT="${PIPHI_PORT:-31415}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-60}"    # seconds between checks (after warmup)
 BOOT_DELAY="${BOOT_DELAY:-600}"           # seconds after host boot (e.g. 600 = 10 min)
 UBUNTU_PIPHI_NAME="${UBUNTU_PIPHI_NAME:-ubuntu-piphi}"
+LANGUAGE="${LANGUAGE:-en}"
+
+consecutive_failures=0
+MAX_FAIL_BEFORE_RESTART=3
+POST_RESTART_DELAY=300  # 5 minutes after running start-piphi.sh
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
-# Warmup after host boot – Docker inside ubuntu-piphi, PiPhi stack, GPS need time
-log "Initial boot delay: ${BOOT_DELAY}s (waiting for docker + PiPhi + GPS)..."
-sleep "$BOOT_DELAY"
+log_msg() {
+  key="$1"
+  shift
 
-consecutive_failures=0
-MAX_FAIL_BEFORE_RESTART=3
+  if [ "$LANGUAGE" = "pl" ]; then
+    case "$key" in
+      boot_delay)        log "Początkowe opóźnienie po starcie hosta: ${BOOT_DELAY}s (czekam na docker + PiPhi + GPS)..." ;;
+      check_panel)       log "Sprawdzam panel PiPhi pod adresem: $1" ;;
+      panel_up)          log "Panel PiPhi działa." ;;
+      panel_down)        log "Panel PiPhi NIE odpowiada. Próba naprawy przez balena exec..." ;;
+      host_docker_ps)    log "Docker ps na hoście (diagnostyka)..." ;;
+      ubuntu_not_running)log "${UBUNTU_PIPHI_NAME} nie działa – próbuję go uruchomić..." ;;
+      fail_count)        log "Kolejne nieudane próby: ${consecutive_failures}/${MAX_FAIL_BEFORE_RESTART}" ;;
+      below_threshold)   log "Panel PiPhi nie działa, ale poniżej progu restartu – kolejna próba za ${CHECK_INTERVAL}s." ;;
+      run_start_piphi)   log "Uruchamiam start-piphi.sh w ${UBUNTU_PIPHI_NAME} (dockerd + PiPhi + GPS)..." ;;
+      start_error)       log "start-piphi.sh zwrócił błąd." ;;
+      wait_post_restart) log "Czekam ${POST_RESTART_DELAY}s po restarcie, aż panel wstanie..." ;;
+      recovered)         log "Panel PiPhi działa po próbie naprawy." ;;
+      still_down)        log "Panel PiPhi nadal NIE działa po próbie naprawy." ;;
+      *)
+        log "$@"
+        ;;
+    esac
+  else
+    case "$key" in
+      boot_delay)        log "Initial boot delay: ${BOOT_DELAY}s (waiting for docker + PiPhi + GPS)..." ;;
+      check_panel)       log "Checking PiPhi panel at: $1" ;;
+      panel_up)          log "PiPhi panel is UP." ;;
+      panel_down)        log "PiPhi panel is DOWN. Attempting recovery via balena exec..." ;;
+      host_docker_ps)    log "Running docker ps on host (diagnostics)..." ;;
+      ubuntu_not_running)log "${UBUNTU_PIPHI_NAME} is not running – trying to start it..." ;;
+      fail_count)        log "Consecutive failures: ${consecutive_failures}/${MAX_FAIL_BEFORE_RESTART}" ;;
+      below_threshold)   log "PiPhi panel DOWN but below restart threshold – will re-check in ${CHECK_INTERVAL}s." ;;
+      run_start_piphi)   log "Running start-piphi.sh in ${UBUNTU_PIPHI_NAME} (dockerd + PiPhi + GPS)..." ;;
+      start_error)       log "start-piphi.sh returned an error." ;;
+      wait_post_restart) log "Waiting ${POST_RESTART_DELAY}s after restart for panel to come up..." ;;
+      recovered)         log "PiPhi panel is UP after recovery." ;;
+      still_down)        log "PiPhi panel is still DOWN after recovery attempt." ;;
+      *)
+        log "$@"
+        ;;
+    esac
+  fi
+}
+
+log_msg boot_delay
+sleep "$BOOT_DELAY"
 
 while true; do
   URL="http://127.0.0.1:${PIPHI_PORT}/"
-  log "Checking PiPhi panel at: $URL"
+  log_msg check_panel "$URL"
 
   if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
-    log "PiPhi panel is UP."
+    log_msg panel_up
     consecutive_failures=0
   else
-    log "PiPhi panel is DOWN. Attempting recovery via balena exec..."
+    log_msg panel_down
 
-    # host diagnostics
+    log_msg host_docker_ps
     docker ps || true
 
-    # ensure ubuntu-piphi is UP (restart if needed)
     if ! docker ps --format '{{.Names}}' | grep -q "^${UBUNTU_PIPHI_NAME}$"; then
-      log "${UBUNTU_PIPHI_NAME} is not running – trying to start it..."
+      log_msg ubuntu_not_running
       docker restart "${UBUNTU_PIPHI_NAME}" || true
       sleep 10
     fi
 
     consecutive_failures=$((consecutive_failures + 1))
-    log "Consecutive failures: ${consecutive_failures}/${MAX_FAIL_BEFORE_RESTART}"
+    log_msg fail_count
 
     if [ "$consecutive_failures" -ge "$MAX_FAIL_BEFORE_RESTART" ]; then
-      log "Running start-piphi.sh in ${UBUNTU_PIPHI_NAME} (dockerd + PiPhi + GPS)..."
+      log_msg run_start_piphi
       docker exec "${UBUNTU_PIPHI_NAME}" sh -lc 'cd /piphi-network && ./start-piphi.sh' \
-        || log "start-piphi.sh returned an error"
+        || log_msg start_error
 
-      # after a restart, give system some time (shorter than initial BOOT_DELAY)
-      POST_RESTART_DELAY=300  # 5 minutes
-      log "Waiting ${POST_RESTART_DELAY}s after restart for panel to come up..."
+      log_msg wait_post_restart
       sleep "$POST_RESTART_DELAY"
 
       if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
-        log "PiPhi panel is UP after recovery."
+        log_msg recovered
         consecutive_failures=0
       else
-        log "PiPhi panel still DOWN after recovery attempt."
-        # do not hammer endlessly – keep failure counter, next loop will try again
+        log_msg still_down
       fi
     else
-      log "PiPhi panel DOWN but below restart threshold – will re-check in ${CHECK_INTERVAL}s."
+      log_msg below_threshold
     fi
   fi
 
@@ -178,6 +220,7 @@ balena run -d \
   -e CHECK_INTERVAL="$CHECK_INTERVAL" \
   -e BOOT_DELAY="$BOOT_DELAY" \
   -e UBUNTU_PIPHI_NAME="$UBUNTU_PIPHI_NAME" \
+  -e LANGUAGE="$LANGUAGE" \
   -v /run/balena-engine.sock:/var/run/docker.sock \
   -e DOCKER_HOST="unix:///var/run/docker.sock" \
   "$IMAGE_NAME"
