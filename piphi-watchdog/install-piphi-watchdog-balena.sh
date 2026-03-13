@@ -1,6 +1,6 @@
 #!/bin/bash
 # PiPhi Watchdog installer for balenaOS (SenseCAP M1)
-# Version: 2.1 (EN default, optional PL, localized logs)
+# Version: 2.2 (EN default, optional PL, localized logs, BOOT_DELAY=60s)
 # - Builds Alpine image with docker-cli + curl + watchdog.sh
 # - Runs piphi-watchdog container on balenaOS host (balena-engine)
 
@@ -12,7 +12,7 @@ CONTAINER_NAME="piphi-watchdog"
 UBUNTU_PIPHI_NAME="ubuntu-piphi"
 PIPHI_PORT="31415"
 CHECK_INTERVAL="60"   # seconds between checks AFTER warmup
-BOOT_DELAY="600"      # 10 minutes after host boot / restart
+BOOT_DELAY="60"       # 1 minute after host boot / restart
 
 # ===== LANGUAGE SELECTION =====
 
@@ -66,7 +66,7 @@ set -e
 
 PIPHI_PORT="${PIPHI_PORT:-31415}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-60}"    # seconds between checks (after warmup)
-BOOT_DELAY="${BOOT_DELAY:-600}"           # seconds after host boot (e.g. 600 = 10 min)
+BOOT_DELAY="${BOOT_DELAY:-60}"            # seconds after host boot (e.g. 60 = 1 min)
 UBUNTU_PIPHI_NAME="${UBUNTU_PIPHI_NAME:-ubuntu-piphi}"
 LANGUAGE="${LANGUAGE:-en}"
 
