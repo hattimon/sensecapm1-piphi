@@ -1,435 +1,232 @@
-# 🛰️ PiPhi Watchdog for SenseCAP M1 (balenaOS)
+#!/bin/bash
+# PiPhi Watchdog installer for balenaOS (SenseCAP M1)
+# Version: 2.2 (EN default, optional PL, localized logs, BOOT_DELAY=60s)
+# - Builds Alpine image with docker-cli + curl + watchdog.sh
+# - Runs piphi-watchdog container on balenaOS host (balena-engine)
 
-![Architecture](https://img.shields.io/badge/architecture-watchdog%20recovery-blue)
-![Platform](https://img.shields.io/badge/platform-balenaOS-green)
-![Environment](https://img.shields.io/badge/environment-balena%20host-orange)
-![Device](https://img.shields.io/badge/device-SenseCAP%20M1-lightgrey)
-![License](https://img.shields.io/github/license/hattimon/sensecapm1-piphi)
-![GitHub Stars](https://img.shields.io/github/stars/hattimon/sensecapm1-piphi?style=social)
+set -e
 
-Automatic **recovery watchdog for PiPhi running directly on SenseCAP M1 (balenaOS)**.
+INSTALL_DIR="/mnt/data/piphi-watchdog-balena"
+IMAGE_NAME="piphi-watchdog-balena:latest"
+CONTAINER_NAME="piphi-watchdog"
+UBUNTU_PIPHI_NAME="ubuntu-piphi"
+PIPHI_PORT="31415"
+CHECK_INTERVAL="60"   # seconds between checks AFTER warmup
+BOOT_DELAY="60"       # 1 minute after host boot / restart
 
-The watchdog runs as a **balenaOS container on the SenseCAP host** and automatically restores the **PiPhi panel and containers** if the system becomes unavailable due to:
+# ===== LANGUAGE SELECTION =====
 
-- power outages
-- device reboot
-- container crashes
-- docker daemon issues inside `ubuntu-piphi`
+LANGUAGE="en"
 
-The system uses **safe recovery logic with backoff** to avoid unnecessary restart loops and to give **GPS time to reacquire a fix**.
+echo "========================================"
+echo "PiPhi Watchdog installer for balenaOS"
+echo "========================================"
+echo "Select language / Wybierz język:"
+echo "1) English (default)"
+echo "2) Polski"
+read -rp "Choice [1/2]: " LANG_CHOICE
 
----
+case "$LANG_CHOICE" in
+  2)
+    LANGUAGE="pl"
+    ;;
+  *)
+    LANGUAGE="en"
+    ;;
+esac
 
-# 🌐 Language / Język
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "Wybrano język: polski"
+else
+  echo "Selected language: English"
+fi
 
-- 🇬🇧 [English Documentation](#english-documentation)
-- 🇵🇱 [Dokumentacja po Polsku](#dokumentacja-po-polsku)
+echo
 
----
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "=== Instalator PiPhi Watchdog (balenaOS) ==="
+  echo "Katalog instalacyjny: $INSTALL_DIR"
+else
+  echo "=== PiPhi Watchdog installer (balenaOS) ==="
+  echo "Install directory: $INSTALL_DIR"
+fi
 
-# ✨ Features
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 
-⚡ **Automatic PiPhi panel monitoring**  
-Periodically checks the PiPhi web UI on the SenseCAP host (`http://127.0.0.1:31415/`).
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "===> Tworzę watchdog.sh..."
+else
+  echo "===> Creating watchdog.sh..."
+fi
 
-🐳 **Host-level watchdog container**  
-Runs as a container on balenaOS and talks to `balena-engine` via the Docker socket.
+cat > watchdog.sh << 'EOF'
+#!/bin/sh
+set -e
 
-🧩 **Installer-generated watchdog script**  
-The installer builds a **small Alpine image with a generated `watchdog.sh`**, tailored to your configuration.
+PIPHI_PORT="${PIPHI_PORT:-31415}"
+CHECK_INTERVAL="${CHECK_INTERVAL:-60}"    # seconds between checks (after warmup)
+BOOT_DELAY="${BOOT_DELAY:-60}"            # seconds after host boot (e.g. 60 = 1 min)
+UBUNTU_PIPHI_NAME="${UBUNTU_PIPHI_NAME:-ubuntu-piphi}"
+LANGUAGE="${LANGUAGE:-en}"
 
-🧠 **Smart recovery logic with backoff**  
-Avoids tight restart loops and gives the system time to boot PiPhi and GPS.
+consecutive_failures=0
+MAX_FAIL_BEFORE_RESTART=3
+POST_RESTART_DELAY=300  # 5 minutes after running start-piphi.sh
 
-🛰 **Integrated GPS startup**  
-Relies on `start-piphi.sh` inside `ubuntu-piphi` to start **dockerd + PiPhi stack + GPSD**.
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
 
-🔁 **Automatic recovery after reboot**  
-The watchdog container is created with `--restart unless-stopped`, so it is started automatically by balenaOS.
+log_msg() {
+  key="$1"
+  shift
 
----
+  if [ "$LANGUAGE" = "pl" ]; then
+    case "$key" in
+      boot_delay)        log "Początkowe opóźnienie po starcie hosta: ${BOOT_DELAY}s (czekam na docker + PiPhi + GPS)..." ;;
+      check_panel)       log "Sprawdzam panel PiPhi pod adresem: $1" ;;
+      panel_up)          log "Panel PiPhi działa." ;;
+      panel_down)        log "Panel PiPhi NIE odpowiada. Próba naprawy przez balena exec..." ;;
+      host_docker_ps)    log "Docker ps na hoście (diagnostyka)..." ;;
+      ubuntu_not_running)log "${UBUNTU_PIPHI_NAME} nie działa – próbuję go uruchomić..." ;;
+      fail_count)        log "Kolejne nieudane próby: ${consecutive_failures}/${MAX_FAIL_BEFORE_RESTART}" ;;
+      below_threshold)   log "Panel PiPhi nie działa, ale poniżej progu restartu – kolejna próba za ${CHECK_INTERVAL}s." ;;
+      run_start_piphi)   log "Uruchamiam start-piphi.sh w ${UBUNTU_PIPHI_NAME} (dockerd + PiPhi + GPS)..." ;;
+      start_error)       log "start-piphi.sh zwrócił błąd." ;;
+      wait_post_restart) log "Czekam ${POST_RESTART_DELAY}s po restarcie, aż panel wstanie..." ;;
+      recovered)         log "Panel PiPhi działa po próbie naprawy." ;;
+      still_down)        log "Panel PiPhi nadal NIE działa po próbie naprawy." ;;
+      *)
+        log "$@"
+        ;;
+    esac
+  else
+    case "$key" in
+      boot_delay)        log "Initial boot delay: ${BOOT_DELAY}s (waiting for docker + PiPhi + GPS)..." ;;
+      check_panel)       log "Checking PiPhi panel at: $1" ;;
+      panel_up)          log "PiPhi panel is UP." ;;
+      panel_down)        log "PiPhi panel is DOWN. Attempting recovery via balena exec..." ;;
+      host_docker_ps)    log "Running docker ps on host (diagnostics)..." ;;
+      ubuntu_not_running)log "${UBUNTU_PIPHI_NAME} is not running – trying to start it..." ;;
+      fail_count)        log "Consecutive failures: ${consecutive_failures}/${MAX_FAIL_BEFORE_RESTART}" ;;
+      below_threshold)   log "PiPhi panel DOWN but below restart threshold – will re-check in ${CHECK_INTERVAL}s." ;;
+      run_start_piphi)   log "Running start-piphi.sh in ${UBUNTU_PIPHI_NAME} (dockerd + PiPhi + GPS)..." ;;
+      start_error)       log "start-piphi.sh returned an error." ;;
+      wait_post_restart) log "Waiting ${POST_RESTART_DELAY}s after restart for panel to come up..." ;;
+      recovered)         log "PiPhi panel is UP after recovery." ;;
+      still_down)        log "PiPhi panel is still DOWN after recovery attempt." ;;
+      *)
+        log "$@"
+        ;;
+    esac
+  fi
+}
 
-# 🏗 Architecture
+log_msg boot_delay
+sleep "$BOOT_DELAY"
 
-```mermaid
-flowchart LR
-    SC["SenseCAP M1 (balenaOS host)"]
-    SC -->|balena-engine| WD["piphi-watchdog container"]
-    SC -->|balena-engine| UB["ubuntu-piphi container"]
-    UB -->|Docker| PS["PiPhi stack + GPSD"]
+while true; do
+  URL="http://127.0.0.1:${PIPHI_PORT}/"
+  log_msg check_panel "$URL"
 
-    WD -->|HTTP check 31415| SC
-    WD -->|docker exec start-piphi.sh| UB
-```
+  if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
+    log_msg panel_up
+    consecutive_failures=0
+  else
+    log_msg panel_down
 
-- **SenseCAP M1** – runs **balenaOS** and multiple containers (`ubuntu-piphi`, miner, etc.).
-- **piphi-watchdog** – small Alpine container with `docker-cli` and `watchdog.sh`, monitoring the PiPhi panel.
-- **ubuntu-piphi** – Ubuntu container prepared by your PiPhi installer script.
-- **PiPhi stack + GPSD** – database, Grafana, PiPhi app, Watchtower and GPS daemon, started via `start-piphi.sh`.
+    log_msg host_docker_ps
+    docker ps || true
 
----
+    if ! docker ps --format '{{.Names}}' | grep -q "^${UBUNTU_PIPHI_NAME}$"; then
+      log_msg ubuntu_not_running
+      docker restart "${UBUNTU_PIPHI_NAME}" || true
+      sleep 10
+    fi
 
-<a id="english-documentation"></a>
+    consecutive_failures=$((consecutive_failures + 1))
+    log_msg fail_count
 
-# 🇬🇧 English Documentation
+    if [ "$consecutive_failures" -ge "$MAX_FAIL_BEFORE_RESTART" ]; then
+      log_msg run_start_piphi
+      docker exec "${UBUNTU_PIPHI_NAME}" sh -lc 'cd /piphi-network && ./start-piphi.sh' \
+        || log_msg start_error
 
-## 📦 Repository Files (watchdog for balenaOS)
+      log_msg wait_post_restart
+      sleep "$POST_RESTART_DELAY"
 
-| File | Description |
-|------|-------------|
-| `piphi-watchdog/install-piphi-watchdog-balena.sh` | Watchdog installer for balenaOS (SenseCAP M1) |
-| `piphi-watchdog/` | Directory for watchdog-related files |
+      if curl -s --max-time 5 "$URL" >/dev/null 2>&1; then
+        log_msg recovered
+        consecutive_failures=0
+      else
+        log_msg still_down
+      fi
+    else
+      log_msg below_threshold
+    fi
+  fi
 
-The installer **does NOT download `watchdog.sh` from GitHub** at runtime.  
-Instead it **generates `watchdog.sh` locally** and builds a small image around it.
+  sleep "$CHECK_INTERVAL"
+done
+EOF
+chmod +x watchdog.sh
 
----
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "===> Tworzę Dockerfile..."
+else
+  echo "===> Creating Dockerfile..."
+fi
 
-## ⚙️ Requirements
+cat > Dockerfile << 'EOF'
+FROM alpine:3.19
 
-Before installation on SenseCAP M1 you need:
+RUN apk add --no-cache docker-cli curl
 
-- SenseCAP M1 running **balenaOS** with:
-  - `balena` CLI available on the host shell
-  - `ubuntu-piphi` container installed and prepared with **PiPhi + `start-piphi.sh`**
+WORKDIR /usr/src/app
 
-A working PiPhi installation reachable on the host as:
+COPY watchdog.sh /usr/src/app/watchdog.sh
 
-```
-http://127.0.0.1:31415/
-```
+RUN chmod +x /usr/src/app/watchdog.sh
 
-Access to the **host shell** of the SenseCAP M1 (via SSH or console).
+CMD ["/usr/src/app/watchdog.sh"]
+EOF
 
-Verify `curl` is available:
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "===> Buduję obraz $IMAGE_NAME (balena build) ..."
+else
+  echo "===> Building image $IMAGE_NAME (balena build) ..."
+fi
+balena build . -t "$IMAGE_NAME"
 
-```bash
-curl --version
-```
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "===> Zatrzymuję stary kontener (jeśli istnieje)..."
+else
+  echo "===> Removing old container (if exists)..."
+fi
+balena rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
-Example:
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "===> Uruchamiam nowy kontener watchdog: $CONTAINER_NAME"
+else
+  echo "===> Starting new watchdog container: $CONTAINER_NAME"
+fi
 
-```
-curl 7.69.1 (aarch64-poky-linux-gnu)
-```
-
-On reference SenseCAP M1 devices with balenaOS, `curl` is available by default.
-
----
-
-# 🚀 Installation (on SenseCAP balenaOS host)
-
-On the SenseCAP host shell (logged into balenaOS as root):
-
-```bash
-cd /mnt/data && \
-curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
-chmod +x install-piphi-watchdog-balena.sh && \
-./install-piphi-watchdog-balena.sh
-```
-
-The installer will:
-
-- Ask for language selection (English default, Polish optional)
-- Generate `watchdog.sh`
-- Build the `piphi-watchdog-balena:latest` image
-- Remove any existing `piphi-watchdog` container
-- Start a new watchdog container with `--restart unless-stopped`
-
----
-
-## 🔧 What the Installer Does
-
-The installer:
-
-Creates install directory:
-
-```
-/mnt/data/piphi-watchdog-balena
-```
-
-Generates `watchdog.sh` with:
-
-- HTTP checks on `127.0.0.1:31415`
-- Boot delay **BOOT_DELAY = 60 seconds**
-- Check interval **60 seconds**
-- Recovery logic via `start-piphi.sh`
-- English or Polish logs
-
-Builds a Docker image:
-
-```
-piphi-watchdog-balena:latest
-```
-
-Removes old container:
-
-```
-piphi-watchdog
-```
-
-Runs watchdog container:
-
-```bash
 balena run -d \
-  --name piphi-watchdog \
+  --name "$CONTAINER_NAME" \
   --restart unless-stopped \
   --net host \
-  -e PIPHI_PORT="31415" \
-  -e CHECK_INTERVAL="60" \
-  -e BOOT_DELAY="60" \
-  -e UBUNTU_PIPHI_NAME="ubuntu-piphi" \
-  -e LANGUAGE="en|pl" \
+  -e PIPHI_PORT="$PIPHI_PORT" \
+  -e CHECK_INTERVAL="$CHECK_INTERVAL" \
+  -e BOOT_DELAY="$BOOT_DELAY" \
+  -e UBUNTU_PIPHI_NAME="$UBUNTU_PIPHI_NAME" \
+  -e LANGUAGE="$LANGUAGE" \
   -v /run/balena-engine.sock:/var/run/docker.sock \
   -e DOCKER_HOST="unix:///var/run/docker.sock" \
-  piphi-watchdog-balena:latest
-```
-
----
-
-# 🔁 Recovery Logic
-
-## Stage 0 — Initial Warmup (BOOT_DELAY = 60s)
-
-After SenseCAP boot or watchdog start:
-
-- watchdog waits **60 seconds**
-- allows:
-  - `ubuntu-piphi` to start
-  - Docker inside container to start
-  - PiPhi stack initialization
-  - GPSD startup
-
-No checks during warmup.
-
----
-
-## Stage 1 — Panel Check (every 60s)
-
-```bash
-curl -s --max-time 5 http://127.0.0.1:31415/
-```
-
-If panel works → nothing happens  
-If panel fails → Stage 2
-
----
-
-## Stage 2 — Failure Counting
-
-Watchdog:
-
-1. Logs failure
-2. Runs `docker ps`
-3. Checks if `ubuntu-piphi` is running
-4. If stopped → `docker restart ubuntu-piphi`
-5. Increments `consecutive_failures`
-
-If failures < 3 → wait  
-If failures ≥ 3 → Stage 3
-
----
-
-## Stage 3 — Full Recovery
-
-```bash
-docker exec ubuntu-piphi sh -lc 'cd /piphi-network && ./start-piphi.sh'
-```
-
-Then watchdog waits:
-
-```
-POST_RESTART_DELAY = 300 seconds
-```
-
-If panel returns → reset counter  
-If still down → repeat recovery logic
-
----
-
-# 📋 Logs and Monitoring
-
-## Watchdog logs
-
-```bash
-balena logs -f piphi-watchdog
-```
-
-Logs are written to container stdout and visible via:
-
-- `balena logs`
-- balenaCloud dashboard
-
-Language depends on installer selection.
-
----
-
-## List containers
-
-```bash
-balena ps
-```
-
-Look for:
-
-- `piphi-watchdog`
-- `ubuntu-piphi`
-
-Check PiPhi containers inside ubuntu-piphi:
-
-```bash
-balena exec -it ubuntu-piphi docker ps
-```
-
----
-
-<a id="dokumentacja-po-polsku"></a>
-
-# 🇵🇱 Dokumentacja po Polsku
-
-## 📦 Pliki w repozytorium
-
-| Plik | Opis |
-|------|------|
-| `piphi-watchdog/install-piphi-watchdog-balena.sh` | Instalator watchdoga na balenaOS |
-| `piphi-watchdog/` | Katalog z plikami watchdog |
-
-Instalator **nie pobiera `watchdog.sh` z GitHuba**.
-
-Zamiast tego **generuje go lokalnie i buduje obraz Docker**.
-
----
-
-## ⚙️ Wymagania
-
-- SenseCAP M1 z **balenaOS**
-- dostęp do **balena CLI**
-- kontener **ubuntu-piphi**
-- działający panel PiPhi:
-
-```
-http://127.0.0.1:31415/
-```
-
-Sprawdzenie curl:
-
-```bash
-curl --version
-```
-
-Na SenseCAP M1 curl jest dostępny domyślnie.
-
----
-
-# 🚀 Instalacja
-
-Na hoście SenseCAP:
-
-```bash
-cd /mnt/data && \
-curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
-chmod +x install-piphi-watchdog-balena.sh && \
-./install-piphi-watchdog-balena.sh
-```
-
-Instalator:
-
-- zapyta o język
-- wygeneruje `watchdog.sh`
-- zbuduje obraz `piphi-watchdog-balena`
-- usunie stary kontener
-- uruchomi nowy watchdog
-
----
-
-# 🔁 Logika naprawy
-
-## Etap 0 — BOOT_DELAY = 60s
-
-Watchdog czeka 60 sekund aby:
-
-- uruchomił się `ubuntu-piphi`
-- wystartował dockerd
-- uruchomił się stack PiPhi
-- GPSD rozpoczął pracę
-
----
-
-## Etap 1 — Sprawdzenie panelu
-
-```bash
-curl -s --max-time 5 http://127.0.0.1:31415/
-```
-
-panel działa → brak akcji  
-panel nie działa → Etap 2
-
----
-
-## Etap 2 — Licznik błędów
-
-- log błędu
-- `docker ps`
-- sprawdzenie `ubuntu-piphi`
-- restart jeśli potrzeba
-
-Jeśli błędy ≥ 3 → Etap 3
-
----
-
-## Etap 3 — Pełna naprawa
-
-```bash
-docker exec ubuntu-piphi sh -lc 'cd /piphi-network && ./start-piphi.sh'
-```
-
-Czekanie:
-
-```
-POST_RESTART_DELAY = 300s
-```
-
-Panel wraca → reset licznika
-
----
-
-# 📋 Logi i monitoring
-
-Logi:
-
-```bash
-balena logs -f piphi-watchdog
-```
-
-Lista kontenerów:
-
-```bash
-balena ps
-```
-
-Kontenery PiPhi:
-
-```bash
-balena exec -it ubuntu-piphi docker ps
-```
-
----
-
-# ⭐ Contributing
-
-Pull requests are welcome.
-
-- open an **Issue**
-- submit a **Pull Request**
-
----
-
-# 📄 License
-
-Released under **MIT License**
-
-See:
-
-```
-LICENSE
-```
+  "$IMAGE_NAME"
+
+if [ "$LANGUAGE" = "pl" ]; then
+  echo "=== Gotowe. Logi watchdoga: balena logs -f $CONTAINER_NAME"
+else
+  echo "=== Done. Watchdog logs: balena logs -f $CONTAINER_NAME"
+fi
