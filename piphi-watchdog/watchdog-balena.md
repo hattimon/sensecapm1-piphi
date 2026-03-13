@@ -70,19 +70,18 @@ flowchart LR
 ---
 
 <a id="english-documentation"></a>
+
 # 🇬🇧 English Documentation
 
 ## 📦 Repository Files (watchdog for balenaOS)
 
-In this repository:
-
 | File | Description |
 |------|-------------|
-| `piphi-watchdog/install-piphi-watchdog-balena.sh` | Interactive installer, builds and runs the watchdog container on balenaOS |
+| `piphi-watchdog/install-piphi-watchdog-balena.sh` | Watchdog installer for balenaOS (SenseCAP M1) |
 | `piphi-watchdog/` | Directory for watchdog-related files |
 
-> The installer **does NOT download `watchdog.sh` from GitHub** at runtime.  
-> Instead it **generates `watchdog.sh` locally** and builds a small image around it.
+The installer **does NOT download `watchdog.sh` from GitHub** at runtime.  
+Instead it **generates `watchdog.sh` locally** and builds a small image around it.
 
 ---
 
@@ -91,89 +90,85 @@ In this repository:
 Before installation on SenseCAP M1 you need:
 
 - SenseCAP M1 running **balenaOS** with:
-  - `balena` CLI available on the host shell,
-  - `ubuntu-piphi` container installed and **prepared with PiPhi + `start-piphi.sh`**.
-- A working PiPhi installation reachable on the host as:
+  - `balena` CLI available on the host shell
+  - `ubuntu-piphi` container installed and prepared with **PiPhi + `start-piphi.sh`**
+
+A working PiPhi installation reachable on the host as:
 
 ```
 http://127.0.0.1:31415/
 ```
 
-- Access to the **host shell** of the SenseCAP M1 (via SSH or console).
+Access to the **host shell** of the SenseCAP M1 (via SSH or console).
+
+Verify `curl` is available:
+
+```bash
+curl --version
+```
+
+Example:
+
+```
+curl 7.69.1 (aarch64-poky-linux-gnu)
+```
+
+On reference SenseCAP M1 devices with balenaOS, `curl` is available by default.
 
 ---
 
-## 🚀 Installation (balenaOS Watchdog)
+# 🚀 Installation (on SenseCAP balenaOS host)
 
-1. **Log in to the SenseCAP M1 host shell** (balenaOS).
-
-2. **Clone repository or upload script to the device**
+On the SenseCAP host shell (logged into balenaOS as root):
 
 ```bash
-git clone https://github.com/hattimon/sensecapm1-piphi.git
-cd sensecapm1-piphi/piphi-watchdog
-```
-
-Copy `install-piphi-watchdog-balena.sh` to the SenseCAP host, or mount the repository there.
-
-3. **Run the installer on the SenseCAP host**
-
-```bash
-chmod +x install-piphi-watchdog-balena.sh
+cd /mnt/data && \
+curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
+chmod +x install-piphi-watchdog-balena.sh && \
 ./install-piphi-watchdog-balena.sh
 ```
 
-4. **Language selection**
+The installer will:
 
-The installer will ask:
-
-```
-Select language / Wybierz język:
-1) English (default)
-2) Polski
-```
-
-- Press `Enter` for **English**
-- Enter `2` for **Polish**
-
-The selected language controls:
-
-- Installer messages
-- Watchdog logs (`balena logs -f piphi-watchdog`)
+- Ask for language selection (English default, Polish optional)
+- Generate `watchdog.sh`
+- Build the `piphi-watchdog-balena:latest` image
+- Remove any existing `piphi-watchdog` container
+- Start a new watchdog container with `--restart unless-stopped`
 
 ---
 
 ## 🔧 What the Installer Does
 
-The balenaOS watchdog installer:
+The installer:
 
-1. Creates install directory on the SenseCAP host:
+Creates install directory:
 
 ```
 /mnt/data/piphi-watchdog-balena
 ```
 
-2. Generates `watchdog.sh` with:
+Generates `watchdog.sh` with:
 
 - HTTP checks on `127.0.0.1:31415`
-- Initial **boot delay** (default 600 s, 10 minutes)
-- 60 s interval between checks
-- Recovery logic using `start-piphi.sh` inside `ubuntu-piphi`
-- English or Polish log messages (based on your choice)
+- Boot delay **BOOT_DELAY = 60 seconds**
+- Check interval **60 seconds**
+- Recovery logic via `start-piphi.sh`
+- English or Polish logs
 
-3. Builds a small Alpine image:
+Builds a Docker image:
 
 ```
 piphi-watchdog-balena:latest
 ```
 
-4. Removes any previous watchdog container named:
+Removes old container:
 
 ```
 piphi-watchdog
 ```
 
-5. Starts a new watchdog container:
+Runs watchdog container:
 
 ```bash
 balena run -d \
@@ -182,7 +177,7 @@ balena run -d \
   --net host \
   -e PIPHI_PORT="31415" \
   -e CHECK_INTERVAL="60" \
-  -e BOOT_DELAY="600" \
+  -e BOOT_DELAY="60" \
   -e UBUNTU_PIPHI_NAME="ubuntu-piphi" \
   -e LANGUAGE="en|pl" \
   -v /run/balena-engine.sock:/var/run/docker.sock \
@@ -192,87 +187,95 @@ balena run -d \
 
 ---
 
-## 🔁 Recovery Logic
+# 🔁 Recovery Logic
 
-### Stage 0 — Initial Warmup (BOOT_DELAY)
+## Stage 0 — Initial Warmup (BOOT_DELAY = 60s)
 
-After SenseCAP host boot or watchdog container start:
+After SenseCAP boot or watchdog start:
 
-- watchdog **waits `BOOT_DELAY` seconds** (default 600 s = 10 minutes)
-- this gives time for:
-  - `ubuntu-piphi` container to start,
-  - Docker daemon inside `ubuntu-piphi` to come up,
-  - PiPhi stack and database to initialize,
-  - GPSD to get a fix.
+- watchdog waits **60 seconds**
+- allows:
+  - `ubuntu-piphi` to start
+  - Docker inside container to start
+  - PiPhi stack initialization
+  - GPSD startup
 
-During this warmup there are **no health checks** and no recovery actions.
+No checks during warmup.
 
 ---
 
-### Stage 1 — Panel Check (every 60s)
-
-Every `CHECK_INTERVAL` seconds (default 60):
-
-- watchdog runs an HTTP check:
+## Stage 1 — Panel Check (every 60s)
 
 ```bash
 curl -s --max-time 5 http://127.0.0.1:31415/
 ```
 
-- If the panel is reachable → **no action**
-- If the panel is down → go to Stage 2.
+If panel works → nothing happens  
+If panel fails → Stage 2
 
 ---
 
-### Stage 2 — Failure Counting and Container Check
+## Stage 2 — Failure Counting
 
-When the panel is down:
+Watchdog:
 
-1. Watchdog logs the failure.
-2. Runs `docker ps` on the host (diagnostics).
-3. Verifies if `ubuntu-piphi` container is running:
-   - If not running → tries to `docker restart ubuntu-piphi`.
-4. Increments `consecutive_failures` counter.
+1. Logs failure
+2. Runs `docker ps`
+3. Checks if `ubuntu-piphi` is running
+4. If stopped → `docker restart ubuntu-piphi`
+5. Increments `consecutive_failures`
 
-- If `consecutive_failures < 3` → just logs and waits for the next 60 s check.
-- If `consecutive_failures >= 3` → goes to Stage 3.
+If failures < 3 → wait  
+If failures ≥ 3 → Stage 3
 
 ---
 
-### Stage 3 — Full Recovery via `start-piphi.sh`
-
-When the threshold is reached:
+## Stage 3 — Full Recovery
 
 ```bash
 docker exec ubuntu-piphi sh -lc 'cd /piphi-network && ./start-piphi.sh'
 ```
 
-Then watchdog:
+Then watchdog waits:
 
-- waits **POST_RESTART_DELAY (300 s)**  
-- rechecks the panel
+```
+POST_RESTART_DELAY = 300 seconds
+```
 
-If panel is back → reset failure counter.
+If panel returns → reset counter  
+If still down → repeat recovery logic
 
 ---
 
-## 📋 Logs and Monitoring
+# 📋 Logs and Monitoring
 
-### Watchdog logs
+## Watchdog logs
 
 ```bash
 balena logs -f piphi-watchdog
 ```
 
+Logs are written to container stdout and visible via:
+
+- `balena logs`
+- balenaCloud dashboard
+
+Language depends on installer selection.
+
 ---
 
-### List containers
+## List containers
 
 ```bash
 balena ps
 ```
 
-To see PiPhi containers inside `ubuntu-piphi`:
+Look for:
+
+- `piphi-watchdog`
+- `ubuntu-piphi`
+
+Check PiPhi containers inside ubuntu-piphi:
 
 ```bash
 balena exec -it ubuntu-piphi docker ps
@@ -281,6 +284,7 @@ balena exec -it ubuntu-piphi docker ps
 ---
 
 <a id="dokumentacja-po-polsku"></a>
+
 # 🇵🇱 Dokumentacja po Polsku
 
 ## 📦 Pliki w repozytorium
@@ -288,13 +292,18 @@ balena exec -it ubuntu-piphi docker ps
 | Plik | Opis |
 |------|------|
 | `piphi-watchdog/install-piphi-watchdog-balena.sh` | Instalator watchdoga na balenaOS |
-| `piphi-watchdog/` | Katalog plików watchdoga |
+| `piphi-watchdog/` | Katalog z plikami watchdog |
+
+Instalator **nie pobiera `watchdog.sh` z GitHuba**.
+
+Zamiast tego **generuje go lokalnie i buduje obraz Docker**.
 
 ---
 
 ## ⚙️ Wymagania
 
 - SenseCAP M1 z **balenaOS**
+- dostęp do **balena CLI**
 - kontener **ubuntu-piphi**
 - działający panel PiPhi:
 
@@ -302,23 +311,106 @@ balena exec -it ubuntu-piphi docker ps
 http://127.0.0.1:31415/
 ```
 
----
-
-## 🚀 Instalacja
+Sprawdzenie curl:
 
 ```bash
-git clone https://github.com/hattimon/sensecapm1-piphi.git
-cd sensecapm1-piphi/piphi-watchdog
-chmod +x install-piphi-watchdog-balena.sh
+curl --version
+```
+
+Na SenseCAP M1 curl jest dostępny domyślnie.
+
+---
+
+# 🚀 Instalacja
+
+Na hoście SenseCAP:
+
+```bash
+cd /mnt/data && \
+curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
+chmod +x install-piphi-watchdog-balena.sh && \
 ./install-piphi-watchdog-balena.sh
 ```
 
+Instalator:
+
+- zapyta o język
+- wygeneruje `watchdog.sh`
+- zbuduje obraz `piphi-watchdog-balena`
+- usunie stary kontener
+- uruchomi nowy watchdog
+
 ---
 
-## 📋 Logi
+# 🔁 Logika naprawy
+
+## Etap 0 — BOOT_DELAY = 60s
+
+Watchdog czeka 60 sekund aby:
+
+- uruchomił się `ubuntu-piphi`
+- wystartował dockerd
+- uruchomił się stack PiPhi
+- GPSD rozpoczął pracę
+
+---
+
+## Etap 1 — Sprawdzenie panelu
+
+```bash
+curl -s --max-time 5 http://127.0.0.1:31415/
+```
+
+panel działa → brak akcji  
+panel nie działa → Etap 2
+
+---
+
+## Etap 2 — Licznik błędów
+
+- log błędu
+- `docker ps`
+- sprawdzenie `ubuntu-piphi`
+- restart jeśli potrzeba
+
+Jeśli błędy ≥ 3 → Etap 3
+
+---
+
+## Etap 3 — Pełna naprawa
+
+```bash
+docker exec ubuntu-piphi sh -lc 'cd /piphi-network && ./start-piphi.sh'
+```
+
+Czekanie:
+
+```
+POST_RESTART_DELAY = 300s
+```
+
+Panel wraca → reset licznika
+
+---
+
+# 📋 Logi i monitoring
+
+Logi:
 
 ```bash
 balena logs -f piphi-watchdog
+```
+
+Lista kontenerów:
+
+```bash
+balena ps
+```
+
+Kontenery PiPhi:
+
+```bash
+balena exec -it ubuntu-piphi docker ps
 ```
 
 ---
@@ -327,11 +419,14 @@ balena logs -f piphi-watchdog
 
 Pull requests are welcome.
 
+- open an **Issue**
+- submit a **Pull Request**
+
 ---
 
 # 📄 License
 
-MIT License
+Released under **MIT License**
 
 See:
 
