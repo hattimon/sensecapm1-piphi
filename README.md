@@ -1,4 +1,3 @@
-```markdown
 # 🛰️ PiPhi on SenseCAP M1 (balenaOS)
 
 ![Docker](https://img.shields.io/badge/docker-compose-blue)
@@ -40,30 +39,29 @@ The PiPhi installer:
 
 The environment runs PiPhi **inside a nested Docker environment** to isolate it from the default SenseCAP miner stack, plus an optional watchdog container on the balenaOS host.
 
-```
+
 
 SenseCAP M1 (balenaOS host)
 │
 ├── balena-engine
-│       │
-│       ├── ubuntu-piphi (Ubuntu 20.04 container)
-│       │         │
-│       │         └── dockerd (nested Docker daemon)
-│       │                   │
-│       │                   └── PiPhi docker-compose stack
-│       │                             │
-│       │                 ┌───────────┴────────────┬───────────────┐
-│       │                 ▼                        ▼               ▼
-│       │          Database (PostgreSQL)       Grafana       PiPhi Software + GPSD
-│       │
-│       └── other SenseCAP containers (miner, gateway, etc.)
+│ │
+│ ├── ubuntu-piphi (Ubuntu 20.04 container)
+│ │ │
+│ │ └── dockerd (nested Docker daemon)
+│ │ │
+│ │ └── PiPhi docker-compose stack
+│ │ │
+│ │ ┌───────────┴────────────┬───────────────┐
+│ │ ▼ ▼ ▼
+│ │ Database (PostgreSQL) Grafana PiPhi Software + GPSD
+│ │
+│ └── other SenseCAP containers (miner, gateway, etc.)
 │
 └── piphi-watchdog (optional)
 │
 ├── HTTP checks on 127.0.0.1:31415
 └── docker exec ubuntu-piphi ./start-piphi.sh
 
-````
 
 This approach ensures:
 
@@ -127,25 +125,18 @@ On the SenseCAP balenaOS host:
 
 ```bash
 ls /dev/ttyACM*
-````
 
 Expected:
 
-```
 /dev/ttyACM0
-```
 
 If the device is not present, plug in the GPS dongle and try again.
 
----
+🚀 PiPhi Installation (SenseCAP host)
 
-# 🚀 PiPhi Installation (SenseCAP host)
+All commands below are run directly on the SenseCAP balenaOS host as root.
 
-All commands below are run **directly on the SenseCAP balenaOS host** as `root`.
-
-## 1. Download and run the PiPhi installer
-
-```bash
+1. Download and run the PiPhi installer
 mkdir -p /mnt/data/piphi
 cd /mnt/data/piphi
 
@@ -153,209 +144,170 @@ curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install
 chmod +x install-piphi-sensecapm1.sh
 
 ./install-piphi-sensecapm1.sh
-```
 
 During installation the script will:
 
-* check `/dev/ttyACM0`
-* download PiPhi `docker-compose.yml`
-* inject GPS configuration
-* fix Grafana volumes
-* create `/mnt/data/piphi`
-* pull `ubuntu:20.04`
-* create the `ubuntu-piphi` container
-* install Docker + Docker Compose inside the container
-* generate `/piphi-network/start-piphi.sh`
+check /dev/ttyACM0
 
-> The installer **does NOT automatically start PiPhi**.
-> First start is **manual** so logs and resource usage can be observed.
+download PiPhi docker-compose.yml
 
----
+inject GPS configuration
 
-## 2. Verify `ubuntu-piphi` container
+fix Grafana volumes
+
+create /mnt/data/piphi
+
+pull ubuntu:20.04
+
+create the ubuntu-piphi container
+
+install Docker + Docker Compose inside the container
+
+generate /piphi-network/start-piphi.sh
+
+The installer does NOT automatically start PiPhi.
+First start is manual so logs and resource usage can be observed.
+
+2. Verify ubuntu-piphi container
 
 On the SenseCAP host:
 
-```bash
 balena ps
-```
 
 You should see:
 
-```
 ubuntu-piphi (Up)
-```
 
 If not running:
 
-```bash
 balena logs ubuntu-piphi
-```
-
----
-
-# 🐳 First Manual Start of PiPhi
+🐳 First Manual Start of PiPhi
 
 Enter container:
 
-```bash
 balena exec -it ubuntu-piphi bash
 cd /piphi-network
-```
 
 Run:
 
-```bash
 ./start-piphi.sh
-```
 
 The script will:
 
-* stop old dockerd
-* start Docker daemon
-* start db + grafana
-* start software + watchtower
-* start GPSD
+stop old dockerd
+
+start Docker daemon
+
+start db + grafana
+
+start software + watchtower
+
+start GPSD
 
 Expected message:
 
-```
 PiPhi + GPS started. You can now open the web UI.
-```
-
----
-
-# 🌍 Accessing Interfaces
+🌍 Accessing Interfaces
 
 From your network:
 
 PiPhi dashboard
 
-```
 http://YOUR_SENSECAP_IP:31415
-```
 
 Grafana dashboard
 
-```
 http://YOUR_SENSECAP_IP:3000
-```
-
----
-
-# 📡 GPS Support
+📡 GPS Support
 
 PiPhi reads GPS from:
 
-```
 /dev/ttyACM0
-```
 
 Optional test:
 
-```bash
 gpsd -N -n /dev/ttyACM0 -F /var/run/gpsd.sock &
 cgps -s
-```
-
----
-
-# ⏱️ Optional: PiPhi Watchdog on balenaOS
+⏱️ Optional: PiPhi Watchdog on balenaOS
 
 Install watchdog:
 
-```bash
 cd /mnt/data && \
 curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
 chmod +x install-piphi-watchdog-balena.sh && \
 ./install-piphi-watchdog-balena.sh
-```
 
 Watchdog:
 
-* waits 60s after boot
-* checks `http://127.0.0.1:31415`
-* after 3 failures executes
+waits 60s after boot
 
-```
+checks http://127.0.0.1:31415
+
+after 3 failures executes
+
 docker exec ubuntu-piphi ./start-piphi.sh
-```
-
----
-
-# 🛠 Troubleshooting
+🛠 Troubleshooting
 
 Inside container:
 
-```bash
 docker ps
 docker compose logs
 docker logs piphi-network-image
-```
 
 Dockerd logs:
 
-```bash
 cat /piphi-network/dockerd.log | tail -n 50
-```
 
----
 
-<a id="-dokumentacja-po-polsku"></a>
 
-# 🇵🇱 Dokumentacja po Polsku
 
-## 📑 Spis treści
+🇵🇱 Dokumentacja po Polsku
+📑 Spis treści
 
-* Wymagania
-* Dostęp SSH root
-* Sprawdzenie GPS
-* Instalacja PiPhi
-* Pierwsze uruchomienie
-* Dostęp do paneli
-* Watchdog
-* Rozwiązywanie problemów
+Wymagania
 
----
+Dostęp SSH root
 
-# ⚙️ Wymagania
+Sprawdzenie GPS
+
+Instalacja PiPhi
+
+Pierwsze uruchomienie
+
+Dostęp do paneli
+
+Watchdog
+
+Rozwiązywanie problemów
+
+⚙️ Wymagania
 
 Potrzebujesz:
 
-* SenseCAP M1
-* balenaOS
-* dostęp SSH root
-* GPS USB (U-Blox 7)
+SenseCAP M1
 
----
+balenaOS
 
-# 🔐 Dostęp SSH root
+dostęp SSH root
+
+GPS USB (U-Blox 7)
+
+🔐 Dostęp SSH root
 
 Instrukcja:
 
 https://github.com/hattimon/miner_watchdog/blob/main/linki.md#jak-dosta%C4%87-si%C4%99-na-root-sensecap-m1-przez-ssh
 
----
-
-# 📡 Sprawdzenie GPS
+📡 Sprawdzenie GPS
 
 Na hoście:
 
-```bash
 ls /dev/ttyACM*
-```
 
 Powinno być:
 
-```
 /dev/ttyACM0
-```
-
----
-
-# 🚀 Instalacja PiPhi
-
-```bash
+🚀 Instalacja PiPhi
 mkdir -p /mnt/data/piphi
 cd /mnt/data/piphi
 
@@ -363,71 +315,37 @@ curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/install
 chmod +x install-piphi-sensecapm1.sh
 
 ./install-piphi-sensecapm1.sh
-```
-
----
-
-# 🐳 Pierwsze uruchomienie
-
-```bash
+🐳 Pierwsze uruchomienie
 balena exec -it ubuntu-piphi bash
 cd /piphi-network
 
 ./start-piphi.sh
-```
-
----
-
-# 🌍 Dostęp do paneli
+🌍 Dostęp do paneli
 
 PiPhi
 
-```
 http://IP_SENSECAP:31415
-```
 
 Grafana
 
-```
 http://IP_SENSECAP:3000
-```
-
----
-
-# ⏱️ Watchdog
-
-```bash
+⏱️ Watchdog
 cd /mnt/data
 curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh
 chmod +x install-piphi-watchdog-balena.sh
 ./install-piphi-watchdog-balena.sh
-```
-
----
-
-# 🛠 Rozwiązywanie problemów
+🛠 Rozwiązywanie problemów
 
 Kontenery:
 
-```bash
 balena ps
-```
 
 Logi:
 
-```bash
 balena logs ubuntu-piphi
-```
 
 W kontenerze:
 
-```bash
 docker compose logs
-```
-
----
 
 License: MIT
-
-```
-```
