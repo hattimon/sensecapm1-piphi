@@ -23,6 +23,8 @@ container** that automatically recovers the PiPhi panel.
 
 ------------------------------------------------------------------------
 
+# 🇬🇧 English Documentation
+
 # 🏗 Architecture
 
 SenseCAP M1 (balenaOS host)
