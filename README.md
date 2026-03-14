@@ -62,7 +62,7 @@ Before installation make sure you have:
 -   SenseCAP M1 device
 -   balenaOS running
 -   root SSH access
--   USB GPS module (recommended U‑Blox 7)
+-   USB GPS module (recommended U‑Blox 7) [VK-162 G-Mouse USB GPS]
 -   Internet connection
 
 ------------------------------------------------------------------------
@@ -241,7 +241,7 @@ Potrzebujesz:
 -   SenseCAP M1
 -   balenaOS
 -   dostęp SSH root
--   GPS USB (U‑Blox 7)
+-   GPS USB (U‑Blox 7) [VK-162 G-Mouse USB GPS]
 
 ------------------------------------------------------------------------
 
