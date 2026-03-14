@@ -158,11 +158,19 @@ Grafana:
 
 ------------------------------------------------------------------------
 
-## ⏱️ Optional Watchdog
+## ⏱️ Optional Watchdogs
 
-Install watchdog:
+### Install Local Watchdog
 
-``` bash
+You can install a local watchdog that automatically monitors the PiPhi panel and attempts recovery if the system becomes unavailable.
+
+See the full documentation here:
+
+[FULL INSTRUCTION](piphi-watchdog/watchdog-balena.md)
+
+Run the installer on the SenseCAP host:
+
+```bash
 cd /mnt/data && \
 curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
 chmod +x install-piphi-watchdog-balena.sh && \
@@ -275,6 +283,26 @@ Logi:
 
 ``` bash
 balena logs ubuntu-piphi
+```
+------------------------------------------------------------------------
+
+## ⏱️ Opcjonalny Watchdog
+
+### Instalacja lokalnego watchdoga
+
+Możesz zainstalować lokalny watchdog, który automatycznie monitoruje panel PiPhi i próbuje przywrócić system do działania, jeśli przestanie on odpowiadać.
+
+Pełna dokumentacja znajduje się tutaj:
+
+[PEŁNA INSTRUKCJA](piphi-watchdog/watchdog-balena.md)
+
+Uruchom instalator na hoście SenseCAP:
+
+```bash
+cd /mnt/data && \
+curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
+chmod +x install-piphi-watchdog-balena.sh && \
+./install-piphi-watchdog-balena.sh
 ```
 
 ------------------------------------------------------------------------
