@@ -185,7 +185,33 @@ Grafana:
 
 ------------------------------------------------------------------------
 
-## ⏱️ Optional Watchdogs
+## 🛠 Troubleshooting
+
+If `start-piphi.sh` crashes during the first pull/extract (e.g. `connection reset by peer`), the pull often continues in the background. Do not interrupt.
+
+Recommended recovery:
+1. Wait until CPU drops to ~4–5% and stays there for at least 2–3 minutes.
+2. Reboot the host if needed.
+3. Enter `ubuntu-piphi`, start `dockerd`, then check `docker ps`.
+4. Bring up only the missing services, one by one (longer sleeps):
+
+```bash
+docker compose -f docker-compose.yml up -d db
+sleep 60
+docker compose -f docker-compose.yml up -d grafana
+sleep 60
+docker compose -f docker-compose.yml up -d software
+sleep 120
+docker compose -f docker-compose.yml up -d watchtower
+sleep 60
+```
+
+If a container still does not start after reboot, re-run the same stage; Docker will resume and finish what was interrupted.
+After the first successful manual start, `./start-piphi.sh` is safe to use.
+
+------------------------------------------------------------------------
+
+## ⏱️ Optional Watchdogs 
 
 ### Install Local Watchdog
 
@@ -319,6 +345,28 @@ Grafana:
 ------------------------------------------------------------------------
 
 ## 🛠 Troubleshooting
+
+Jeśli `start-piphi.sh` wysypie się podczas pierwszego `pull/extract` (np. `connection reset by peer`), pobieranie często trwa dalej w tle. Nie przerywaj.
+
+Zalecana procedura:
+1. Poczekaj, aż CPU spadnie do ~4–5% i utrzyma się tak przez min. 2–3 minuty.
+2. Jeśli trzeba, zrób reboot hosta.
+3. Wejdź do `ubuntu-piphi`, uruchom `dockerd`, potem sprawdź `docker ps`.
+4. Podnoś tylko brakujące usługi, etapami (dłuższe przerwy):
+
+```bash
+docker compose -f docker-compose.yml up -d db
+sleep 60
+docker compose -f docker-compose.yml up -d grafana
+sleep 60
+docker compose -f docker-compose.yml up -d software
+sleep 120
+docker compose -f docker-compose.yml up -d watchtower
+sleep 60
+```
+
+Jeśli kontener nadal nie wstaje po restarcie, uruchom ten sam etap ponownie — Docker dociągnie i dokończy przerwane pobieranie.
+Po pierwszym, ręcznym starcie możesz już używać `./start-piphi.sh`.
 
 Sprawdź kontenery:
 
