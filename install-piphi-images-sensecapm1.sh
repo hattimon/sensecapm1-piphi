@@ -1,63 +1,136 @@
 #!/bin/bash
 set -e
 
+# --- Language selection / Wybór języka ---
+echo "Select language / Wybierz język:"
+echo "1) English"
+echo "2) Polski"
+read -rp "[1/2]: " LANG_CHOICE
+
+case "$LANG_CHOICE" in
+  2)
+    LANG="pl"
+    ;;
+  *)
+    LANG="en"
+    ;;
+esac
+
+msg() {
+  local key="$1"
+  shift
+  case "$key" in
+    start)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] --- Drugi etap instalacji PiPhi (obrazy z tar) ---"
+      else
+        echo "[PiPhi] --- PiPhi installation stage 2 (images from tar) ---"
+      fi
+      ;;
+    create_dir)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] Tworzę katalog $1 (jeśli nie istnieje)..."
+      else
+        echo "[PiPhi] Creating directory $1 (if it does not exist)..."
+      fi
+      ;;
+    downloading)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] Pobieram obrazy *.tar z $1..."
+      else
+        echo "[PiPhi] Downloading *.tar images from $1..."
+      fi
+      ;;
+    check_container)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] Sprawdzam, czy kontener ubuntu-piphi działa..."
+      else
+        echo "[PiPhi] Checking if ubuntu-piphi container is running..."
+      fi
+      ;;
+    no_container)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] BŁĄD: kontener ubuntu-piphi nie jest uruchomiony."
+        echo "[PiPhi] Uruchom najpierw główny instalator: install-piphi-sensecapm1.sh"
+      else
+        echo "[PiPhi] ERROR: ubuntu-piphi container is not running."
+        echo "[PiPhi] Please run the main installer first: install-piphi-sensecapm1.sh"
+      fi
+      ;;
+    inside_ubuntu_start)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] Uruchamiam dockerd, ładuję obrazy i startuję kontenery (wewnątrz ubuntu-piphi)..."
+      else
+        echo "[PiPhi] Starting dockerd, loading images and starting containers (inside ubuntu-piphi)..."
+      fi
+      ;;
+    finished)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] Drugi etap instalacji zakończony – PiPhi powinno już działać."
+      else
+        echo "[PiPhi] Second installation stage finished – PiPhi should now be running."
+      fi
+      ;;
+  esac
+}
+
 BASE_URL="http://91.197.91.141:1234"
 PIPHI_DIR="/mnt/data/piphi"
 
-echo "[PiPhi] --- Drugi etap instalacji PiPhi (obrazy z tar) ---"
+msg start
 
-echo "[PiPhi] Tworzę katalog ${PIPHI_DIR} (jeśli nie istnieje)..."
+msg create_dir "$PIPHI_DIR"
 mkdir -p "${PIPHI_DIR}"
 cd "${PIPHI_DIR}"
 
-echo "[PiPhi] Pobieram obrazy *.tar z ${BASE_URL}..."
+msg downloading "$BASE_URL"
 wget -O postgres-13.3.tar       "${BASE_URL}/postgres-13.3.tar"
 wget -O team-piphi-latest.tar   "${BASE_URL}/team-piphi-latest.tar"
 wget -O watchtower-latest.tar   "${BASE_URL}/watchtower-latest.tar"
 wget -O grafana-oss-latest.tar  "${BASE_URL}/grafana-oss-latest.tar"
 
-echo "[PiPhi] Sprawdzam, czy kontener ubuntu-piphi działa..."
+msg check_container
 if ! balena ps | grep -q "ubuntu-piphi"; then
-  echo "[PiPhi] BŁĄD: kontener ubuntu-piphi nie jest uruchomiony."
-  echo "[PiPhi] Uruchom najpierw główny instalator: install-piphi-sensecapm1.sh"
+  msg no_container
   exit 1
 fi
 
-echo "[PiPhi] Ładuję obrazy i startuję PiPhi wewnątrz ubuntu-piphi..."
+msg inside_ubuntu_start
+
 balena exec ubuntu-piphi sh -lc "
   set -e
   cd ${PIPHI_DIR}
 
   if pgrep dockerd >/dev/null 2>&1; then
-    echo '[PiPhi] Ubijam stary dockerd...'
+    echo '[PiPhi] Killing old dockerd...'
     pkill dockerd || true
     sleep 5
   fi
   rm -f /var/run/docker.pid
 
-  echo '[PiPhi] Start dockerd w ubuntu-piphi...'
+  echo '[PiPhi] Starting dockerd inside ubuntu-piphi...'
   dockerd --host=unix:///var/run/docker.sock > ${PIPHI_DIR}/dockerd.log 2>&1 &
   sleep 10
 
-  echo '[PiPhi] docker load z tarów...'
+  echo '[PiPhi] Loading images from tar...'
   docker load -i postgres-13.3.tar
   docker load -i team-piphi-latest.tar
   docker load -i watchtower-latest.tar
   docker load -i grafana-oss-latest.tar
 
-  echo '[PiPhi] Aktualne obrazy w ubuntu-piphi:'
+  echo '[PiPhi] Current images in ubuntu-piphi:'
   docker images
 
-  echo '[PiPhi] Start db + grafana (z lokalnych obrazów)...'
+  echo '[PiPhi] Starting db + grafana (from local images)...'
   docker compose -f docker-compose.yml up -d db grafana
   sleep 20
 
-  echo '[PiPhi] Start software + watchtower (z lokalnych obrazów)...'
+  echo '[PiPhi] Starting software + watchtower (from local images)...'
   docker compose -f docker-compose.yml up -d software watchtower
   sleep 10
 
-  echo '[PiPhi] Kontenery po starcie:'
+  echo '[PiPhi] Containers after start:'
   docker ps
 "
 
-echo "[PiPhi] Drugi etap instalacji zakończony – PiPhi powinno już działać."
+msg finished
