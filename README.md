@@ -133,20 +133,42 @@ docker ps
 
 ---
 
-## Stage 1 — Database + Grafana
+## Stage 1 — Database
 
 ```
-docker compose -f docker-compose.yml up -d db grafana
+docker compose -f docker-compose.yml up -d db
 sleep 20
 docker ps
 ```
 
 ---
 
-## Stage 2 — PiPhi + Watchtower
+## Stage 2 — Grafana
 
 ```
-docker compose -f docker-compose.yml up -d software watchtower
+docker compose -f docker-compose.yml up -d grafana
+sleep 20
+docker ps
+```
+
+---
+
+## Stage 3 — PiPhi
+
+```
+docker compose -f docker-compose.yml up -d software
+sleep 10
+docker ps
+```
+
+---
+
+## Stage 4 — Watchtower
+
+```
+docker compose -f docker-compose.yml up -d watchtower
+sleep 10
+docker ps
 ```
 
 ------------------------------------------------------------------------
