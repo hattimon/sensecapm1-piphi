@@ -25,22 +25,32 @@ container** that automatically recovers the PiPhi panel.
 
 # 🏗 Architecture
 
-SenseCAP M1 (balenaOS host)
+The environment runs PiPhi **inside a nested Docker environment** to isolate it from the default SenseCAP miner stack.
 
-    balena-engine
-       │
-       ├── ubuntu-piphi (Ubuntu container)
-       │        │
-       │        └── dockerd (nested Docker)
-       │               │
-       │               └── PiPhi stack
-       │                     ├── db
-       │                     ├── grafana
-       │                     ├── software
-       │                     ├── watchtower
-       │                     └── gpsd
-       │
-       └── other SenseCAP services
+```
+SenseCAP M1 (balenaOS host)
+    │
+    ├── balena-engine (host Docker daemon)
+    │       │
+    │       ├── ubuntu-piphi (Ubuntu 20.04 container)
+    │       │         │
+    │       │         └── dockerd (nested Docker daemon)
+    │       │                   │
+    │       │                   └── PiPhi docker-compose stack
+    │       │                             ├── db
+    │       │                             ├── grafana
+    │       │                             ├── software
+    │       │                             ├── watchtower
+    │       │                             └── GPSD
+    │       │
+    │       └── other SenseCAP containers (miner, gateway-config, etc.)
+    │
+    └── piphi-watchdog (optional)
+            │
+            ├── HTTP checks on 127.0.0.1:31415 (host network, --net host)
+            ├── docker ps / docker restart ubuntu-piphi (via /var/run/balena-engine.sock)
+            └── docker exec ubuntu-piphi sh -lc 'cd /piphi-network && ./start-piphi.sh'
+```
 
 ------------------------------------------------------------------------
 
