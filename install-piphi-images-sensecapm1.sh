@@ -98,7 +98,6 @@ if [ -f postgres-13.3.tar ] || [ -f team-piphi-latest.tar ] || \
 
   case "$OVER" in
     y|Y)
-      # user wants re-download
       :
       ;;
     *)
@@ -127,6 +126,13 @@ if ! balena ps | grep -q "ubuntu-piphi"; then
   exit 1
 fi
 
+# --- copy tars from host into container / skopiuj tary do kontenera ---
+echo "[PiPhi] Copying tar files into ubuntu-piphi container..."
+balena cp "${HOST_PIPHI_DIR}/postgres-13.3.tar"      ubuntu-piphi:${CONTAINER_PIPHI_DIR}/postgres-13.3.tar
+balena cp "${HOST_PIPHI_DIR}/team-piphi-latest.tar"  ubuntu-piphi:${CONTAINER_PIPHI_DIR}/team-piphi-latest.tar
+balena cp "${HOST_PIPHI_DIR}/watchtower-latest.tar"  ubuntu-piphi:${CONTAINER_PIPHI_DIR}/watchtower-latest.tar
+balena cp "${HOST_PIPHI_DIR}/grafana-oss-latest.tar" ubuntu-piphi:${CONTAINER_PIPHI_DIR}/grafana-oss-latest.tar
+
 msg inside_ubuntu_start
 
 balena exec ubuntu-piphi sh -lc "
@@ -134,12 +140,6 @@ balena exec ubuntu-piphi sh -lc "
 
   mkdir -p ${CONTAINER_PIPHI_DIR}
   cd ${CONTAINER_PIPHI_DIR}
-
-  echo '[PiPhi] Copying tar files from host /mnt/data/piphi into container...'
-  cp /mnt/data/piphi/postgres-13.3.tar .
-  cp /mnt/data/piphi/team-piphi-latest.tar .
-  cp /mnt/data/piphi/watchtower-latest.tar .
-  cp /mnt/data/piphi/grafana-oss-latest.tar .
 
   if pgrep dockerd >/dev/null 2>&1; then
     echo '[PiPhi] Killing old dockerd...'
