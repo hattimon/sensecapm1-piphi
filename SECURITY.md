@@ -19,6 +19,10 @@ https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshoo
 Official guide (EN):
 https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/format-existing-micro-sd-card
 
+Downloads:
+- SD Card Formatter: https://www.sdcard.org/downloads/formatter/
+- BalenaEtcher: https://etcher.balena.io/
+
 ### 3. Risks & Tips
 - **Brick risk:** wrong image or missing `config.json` can prevent boot.
 - Use only official SenseCAP files and tools.
@@ -44,6 +48,10 @@ https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshoo
 Oficjalny przewodnik (PL):
 https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/format-existing-micro-sd-card
 
+Pobierz:
+- SD Card Formatter: https://www.sdcard.org/downloads/formatter/
+- BalenaEtcher: https://etcher.balena.io/
+
 ### 3. Ryzyka i wskazowki
 - **Ryzyko bricka:** zly obraz lub brak `config.json` moze zablokowac start.
 - Uzywaj tylko oficjalnych plikow i narzedzi SenseCAP.
@@ -54,3 +62,4 @@ https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshoo
 Support: https://support.sensecapmx.com
 
 **Last updated: March 2026**
+
