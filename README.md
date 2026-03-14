@@ -620,4 +620,4 @@ balena logs -f piphi-watchdog
 
 # License
 
-MIT
+[MIT](LICENSE)
