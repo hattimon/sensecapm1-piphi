@@ -113,15 +113,35 @@ Installer will:
 
 Enter container:
 
-``` bash
+```
 balena exec -it ubuntu-piphi bash
 cd /piphi-network
 ```
 
-Start:
+Start Docker daemon:
 
-``` bash
-./start-piphi.sh
+```
+dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
+sleep 10
+docker ps
+```
+
+---
+
+## Stage 1 — Database + Grafana
+
+```
+docker compose -f docker-compose.yml up -d db grafana
+sleep 20
+docker ps
+```
+
+---
+
+## Stage 2 — PiPhi + Watchtower
+
+```
+docker compose -f docker-compose.yml up -d software watchtower
 ```
 
 ------------------------------------------------------------------------
@@ -194,11 +214,39 @@ chmod +x install-piphi-sensecapm1.sh
 
 ## 🐳 Pierwsze uruchomienie
 
-``` bash
+## Wejście do kontenera
+
+```bash
 balena exec -it ubuntu-piphi bash
 cd /piphi-network
+```
 
-./start-piphi.sh
+---
+
+## Uruchomienie demona Docker
+
+```bash
+dockerd --host=unix:///var/run/docker.sock > /piphi-network/dockerd.log 2>&1 &
+sleep 10
+docker ps
+```
+
+---
+
+## Etap 1 — Baza danych + Grafana
+
+```bash
+docker compose -f docker-compose.yml up -d db grafana
+sleep 20
+docker ps
+```
+
+---
+
+## Etap 2 — PiPhi + Watchtower
+
+```bash
+docker compose -f docker-compose.yml up -d software watchtower
 ```
 
 ------------------------------------------------------------------------
