@@ -75,13 +75,15 @@ msg() {
 }
 
 BASE_URL="http://91.197.91.141:1234"
-PIPHI_DIR="/mnt/data/piphi"
+HOST_PIPHI_DIR="/mnt/data/piphi"
+CONTAINER_PIPHI_DIR="/piphi-network"
 
 msg start
 
-msg create_dir "$PIPHI_DIR"
-mkdir -p "${PIPHI_DIR}"
-cd "${PIPHI_DIR}"
+# --- host side: download tars to /mnt/data/piphi ---
+msg create_dir "$HOST_PIPHI_DIR"
+mkdir -p "${HOST_PIPHI_DIR}"
+cd "${HOST_PIPHI_DIR}"
 
 msg downloading "$BASE_URL"
 wget -O postgres-13.3.tar       "${BASE_URL}/postgres-13.3.tar"
@@ -99,7 +101,15 @@ msg inside_ubuntu_start
 
 balena exec ubuntu-piphi sh -lc "
   set -e
-  cd ${PIPHI_DIR}
+
+  mkdir -p ${CONTAINER_PIPHI_DIR}
+  cd ${CONTAINER_PIPHI_DIR}
+
+  echo '[PiPhi] Copying tar files from host /mnt/data/piphi into container...'
+  cp /mnt/data/piphi/postgres-13.3.tar .
+  cp /mnt/data/piphi/team-piphi-latest.tar .
+  cp /mnt/data/piphi/watchtower-latest.tar .
+  cp /mnt/data/piphi/grafana-oss-latest.tar .
 
   if pgrep dockerd >/dev/null 2>&1; then
     echo '[PiPhi] Killing old dockerd...'
@@ -109,7 +119,7 @@ balena exec ubuntu-piphi sh -lc "
   rm -f /var/run/docker.pid
 
   echo '[PiPhi] Starting dockerd inside ubuntu-piphi...'
-  dockerd --host=unix:///var/run/docker.sock > ${PIPHI_DIR}/dockerd.log 2>&1 &
+  dockerd --host=unix:///var/run/docker.sock > ${CONTAINER_PIPHI_DIR}/dockerd.log 2>&1 &
   sleep 10
 
   echo '[PiPhi] Loading images from tar...'
