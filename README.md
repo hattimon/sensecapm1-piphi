@@ -18,8 +18,8 @@ container** that automatically recovers the PiPhi panel.
 
 # Language / Jezyk
 
-- English
-- Polski
+- [English Documentation](#english-documentation)
+- [Dokumentacja po Polsku](#dokumentacja-po-polsku)
 
 ------------------------------------------------------------------------
 
@@ -54,6 +54,7 @@ SenseCAP M1 (balenaOS host)
 
 ------------------------------------------------------------------------
 
+<a id="english-documentation"></a>
 # English Documentation
 
 ## Requirements
@@ -215,11 +216,12 @@ mean Docker already downloaded these layers earlier.
 
 Docker will reuse them and continue creating containers.
 
-Again:
+If you see:
 
-- wait until CPU stabilizes
-- reboot if needed
-- continue installation
+    error during connect: ... connection reset by peer
+
+The pull often continues in the background. This is the longest image and may require multiple restarts.
+Only reboot after CPU drops to ~5% and stays stable for 2-3 minutes.
 
 ------------------------------------------------------------------------
 
@@ -276,6 +278,17 @@ Grafana:
 
 ## Optional Watchdog
 
+Full documentation:
+
+[piphi-watchdog/watchdog-balena.md](piphi-watchdog/watchdog-balena.md)
+
+The watchdog runs on the balenaOS host and recovers the PiPhi panel if it goes down.
+
+Requirements:
+
+- ubuntu-piphi installed
+- PiPhi panel reachable on http://127.0.0.1:31415/
+
 Install Local Watchdog:
 
 ```bash
@@ -285,8 +298,23 @@ chmod +x install-piphi-watchdog-balena.sh && \
 ./install-piphi-watchdog-balena.sh
 ```
 
+What the installer does:
+
+- creates /mnt/data/piphi-watchdog-balena
+- generates watchdog.sh (language-aware logs)
+- builds piphi-watchdog-balena:latest image
+- removes old piphi-watchdog container
+- starts a new watchdog container with --restart unless-stopped
+
+Logs:
+
+```bash
+balena logs -f piphi-watchdog
+```
+
 ------------------------------------------------------------------------
 
+<a id="dokumentacja-po-polsku"></a>
 # Dokumentacja po Polsku
 
 ## Wymagania
@@ -441,11 +469,12 @@ oznaczaja, ze Docker juz pobral te warstwy wczesniej.
 
 Docker uzyje ich ponownie i dokonczy tworzenie kontenerow.
 
-Ponownie:
+Jesli pojawi sie:
 
-- poczekaj az CPU sie ustabilizuje
-- zrob restart jesli trzeba
-- kontynuuj instalacje
+    error during connect: ... connection reset by peer
+
+To pull zwykle trwa dalej w tle. To najdluzszy obraz i moze wymagac kilku restartow.
+Restart rob tylko po tym, jak CPU spadnie do ~5% i utrzyma sie tak 2-3 minuty.
 
 ------------------------------------------------------------------------
 
@@ -503,6 +532,17 @@ Grafana:
 
 ## Opcjonalny Watchdog
 
+Pelna dokumentacja:
+
+[piphi-watchdog/watchdog-balena.md](piphi-watchdog/watchdog-balena.md)
+
+Watchdog dziala na hoscie balenaOS i przywraca panel PiPhi, gdy przestaje odpowiadac.
+
+Wymagania:
+
+- ubuntu-piphi zainstalowany
+- panel PiPhi dostepny pod http://127.0.0.1:31415/
+
 Instalacja lokalnego watchdoga:
 
 ```bash
@@ -510,6 +550,20 @@ cd /mnt/data && \
 curl -L https://raw.githubusercontent.com/hattimon/sensecapm1-piphi/main/piphi-watchdog/install-piphi-watchdog-balena.sh -o install-piphi-watchdog-balena.sh && \
 chmod +x install-piphi-watchdog-balena.sh && \
 ./install-piphi-watchdog-balena.sh
+```
+
+Co robi instalator:
+
+- tworzy /mnt/data/piphi-watchdog-balena
+- generuje watchdog.sh (logi w wybranym jezyku)
+- buduje obraz piphi-watchdog-balena:latest
+- usuwa stary kontener piphi-watchdog
+- uruchamia nowy kontener z --restart unless-stopped
+
+Logi:
+
+```bash
+balena logs -f piphi-watchdog
 ```
 
 ------------------------------------------------------------------------
