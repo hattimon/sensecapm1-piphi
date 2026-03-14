@@ -18,8 +18,8 @@ container** that automatically recovers the PiPhi panel.
 
 # 🌐 Language / Język
 
--   🇬🇧 English
--   🇵🇱 Polski
+* 🇬🇧 [English Documentation](#-english-documentation)
+* 🇵🇱 [Dokumentacja po Polsku](#-dokumentacja-po-polsku)
 
 ------------------------------------------------------------------------
 
