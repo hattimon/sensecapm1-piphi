@@ -80,16 +80,46 @@ CONTAINER_PIPHI_DIR="/piphi-network"
 
 msg start
 
-# --- host side: download tars to /mnt/data/piphi ---
+# --- host side: ensure dir / upewnij się, że katalog istnieje ---
 msg create_dir "$HOST_PIPHI_DIR"
 mkdir -p "${HOST_PIPHI_DIR}"
 cd "${HOST_PIPHI_DIR}"
 
-msg downloading "$BASE_URL"
-wget -O postgres-13.3.tar       "${BASE_URL}/postgres-13.3.tar"
-wget -O team-piphi-latest.tar   "${BASE_URL}/team-piphi-latest.tar"
-wget -O watchtower-latest.tar   "${BASE_URL}/watchtower-latest.tar"
-wget -O grafana-oss-latest.tar  "${BASE_URL}/grafana-oss-latest.tar"
+# --- check if tars exist / sprawdź czy tary już są ---
+if [ -f postgres-13.3.tar ] || [ -f team-piphi-latest.tar ] || \
+   [ -f watchtower-latest.tar ] || [ -f grafana-oss-latest.tar ]; then
+  if [ "$LANG" = "pl" ]; then
+    echo "[PiPhi] Wykryto istniejące pliki .tar w ${HOST_PIPHI_DIR}."
+    read -rp "[PiPhi] Nadpisać i pobrać je ponownie? [y/N]: " OVER
+  else
+    echo "[PiPhi] Existing .tar files detected in ${HOST_PIPHI_DIR}."
+    read -rp "[PiPhi] Overwrite and download them again? [y/N]: " OVER
+  fi
+
+  case "$OVER" in
+    y|Y)
+      # user wants re-download
+      :
+      ;;
+    *)
+      if [ "$LANG" = "pl" ]; then
+        echo "[PiPhi] Używam już istniejących plików .tar (bez ponownego pobierania)."
+      else
+        echo "[PiPhi] Using existing .tar files (no re-download)."
+      fi
+      SKIP_DOWNLOAD=1
+      ;;
+  esac
+fi
+
+# --- download tars if needed / pobierz tary jeśli trzeba ---
+if [ -z "$SKIP_DOWNLOAD" ]; then
+  msg downloading "$BASE_URL"
+  wget -O postgres-13.3.tar       "${BASE_URL}/postgres-13.3.tar"
+  wget -O team-piphi-latest.tar   "${BASE_URL}/team-piphi-latest.tar"
+  wget -O watchtower-latest.tar   "${BASE_URL}/watchtower-latest.tar"
+  wget -O grafana-oss-latest.tar  "${BASE_URL}/grafana-oss-latest.tar"
+fi
 
 msg check_container
 if ! balena ps | grep -q "ubuntu-piphi"; then
