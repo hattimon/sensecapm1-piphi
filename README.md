@@ -19,8 +19,8 @@ optional **watchdog container** running on the balenaOS host.
 
 # 🌐 Language / Język
 
--   🇬🇧 English Documentation
--   🇵🇱 Dokumentacja po Polsku
+* 🇬🇧 [English Documentation](#-english-documentation)
+* 🇵🇱 [Dokumentacja po Polsku](#-dokumentacja-po-polsku)
 
 ------------------------------------------------------------------------
 
