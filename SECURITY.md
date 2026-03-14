@@ -3,32 +3,54 @@
 
 **Proceed with extreme caution. These steps can brick your device. Always backup first. / Działaj z najwyższą ostrożnością. Kroki mogą uszkodzić urządzenie. Zawsze zrób backup.**
 
-## 1. Backup config.json (Critical!)
-**EN:** Copy `config.json` from "resin-boot" partition **BEFORE** any flashing. Unique per device – do not share!  
-[Official Guide (EN): Replace config.json](https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/replace-config.json-file) [page:1]
+## 🇬🇧 English
 
-**PL:** Skopiuj `config.json` z partycji "resin-boot" **PRZED** flashowaniem. Unikalny dla urządzenia – nie udostępniaj!  
-[Oficjalny przewodnik (PL): Zamień config.json](https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/replace-config.json-file) [page:1]
+### 1. Backup config.json (Critical)
+- Power off the device, open the front panel, remove the SD card, and copy `config.json` from the `resin-boot` partition.
+- This file is unique per device. Do not share it.
 
-**Tip:** Power off, open panel (2 screws + yellow sticker), remove SD, copy file via reader. Ask SenseCAP support if lost. / Wyczyść: Wyłącz, otwórz panel (2 śruby + żółta naklejka), wyjmij SD, skopiuj plik czytnikiem. Poproś support SenseCAP jeśli zgubiony.[page:0]
+Official guide (EN):
+https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/replace-config.json-file
 
-## 2. Flashing Image (Only if advised!)
-**EN:** Format SD with SD Card Formatter 5.0.1, flash SenseCAP M1 Image with BalenaEtcher, restore config.json. Wait 20-30min post-boot.  
-[Official Guide (EN): Format & Flash](https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/format-existing-micro-sd-card) [page:0]
+### 2. Flashing Image (Only if advised)
+- Format the SD card with SD Card Formatter, flash the SenseCAP M1 image with BalenaEtcher, then restore `config.json` to `resin-boot`.
+- After boot, wait 20-30 minutes for OTA updates.
 
-**PL:** Sformatuj SD w SD Card Formatter 5.0.1, flashuj obraz SenseCAP M1 w BalenaEtcher, przywróć config.json. Czekaj 20-30min po starcie.  
-[Oficjalny przewodnik (PL): Formatuj i flashuj](https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/format-existing-micro-sd-card) [page:0]
+Official guide (EN):
+https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/format-existing-micro-sd-card
 
-**Downloads:** Image/Etcher/Formatter from official links in docs. Test internet first. Ethernet recommended. / Pobierz: Obraz/Etcher/Formatter z oficjalnych linków w docs. Najpierw sprawdź internet. Polecany Ethernet.[page:0]
+### 3. Risks & Tips
+- **Brick risk:** wrong image or missing `config.json` can prevent boot.
+- Use only official SenseCAP files and tools.
+- Avoid frequent power cycling during recovery.
+- Keep backups offline and labeled with device S/N.
+- Protect SSH keys with a passphrase.
 
-## 3. Risks & Tips
-- **Brick risk:** Wrong image/config = no boot. Use only official SenseCAP files.
-- **SSH Safety:** Use passphrase-protected keys; test on dev device.
-- **Post-install:** Monitor via https://status.sensecapmx.cloud. No frequent reboots.
-- **Ryzyko bricka:** Zły obraz/config = brak startu. Tylko oficjalne pliki SenseCAP.
-- **SSH:** Klucze z hasłem; testuj na urządzeniu dev.
-- **Po instalacji:** Monitoruj https://status.sensecapmx.cloud. Unikaj częstych restartów.[page:0]
+Support: https://support.sensecapmx.com
 
-**Contact:** SenseCAP Support https://support.sensecapmx.com or Discord. / Kontakt: Support SenseCAP https://support.sensecapmx.com lub Discord.[page:0]
+## 🇵🇱 Polski
+
+### 1. Backup config.json (Krytyczne)
+- Wylacz urzadzenie, otworz panel, wyjmij karte SD i skopiuj `config.json` z partycji `resin-boot`.
+- Plik jest unikalny dla urzadzenia. Nie udostepniaj go.
+
+Oficjalny przewodnik (PL):
+https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/replace-config.json-file
+
+### 2. Flashowanie obrazu (Tylko gdy zaleci support)
+- Sformatuj karte SD w SD Card Formatter, flashuj obraz SenseCAP M1 w BalenaEtcher, a potem przywroc `config.json` do `resin-boot`.
+- Po starcie odczekaj 20-30 minut na aktualizacje OTA.
+
+Oficjalny przewodnik (PL):
+https://sensecap-mx.gitbook.io/home/sensecap-gateways/sensecap-m1/m1-troubleshooting/micro-sd-card-errors/format-existing-micro-sd-card
+
+### 3. Ryzyka i wskazowki
+- **Ryzyko bricka:** zly obraz lub brak `config.json` moze zablokowac start.
+- Uzywaj tylko oficjalnych plikow i narzedzi SenseCAP.
+- Unikaj czestych restartow podczas odzyskiwania.
+- Przechowuj backupy offline i oznacz S/N urzadzenia.
+- Zabezpiecz klucze SSH haslem.
+
+Support: https://support.sensecapmx.com
 
 **Last updated: March 2026**
