@@ -16,8 +16,8 @@ container** that automatically recovers the PiPhi panel.
 
 ------------------------------------------------------------------------
 
-⚠️ **Security notice / Ostrzezenie**
-Before any installation, read [SECURITY.md](SECURITY.md) for backup and flashing steps.
+⚠️ **Security notice / Ostrzezenie**   
+Before any installation, read [SECURITY.md](SECURITY.md) for backup and flashing steps.   
 Przed rozpoczeciem instalacji zapoznaj sie z [SECURITY.md](SECURITY.md) (backup i flashowanie).
 
 ------------------------------------------------------------------------
