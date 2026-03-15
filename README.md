@@ -138,6 +138,18 @@ Identify environment:
 lsb_release -a || cat /etc/os-release
 ```
 
+Command "reboot" restarts the device (no sudo on balenaOS because you are already administrator):
+
+```bash
+reboot
+```
+
+Command "poweroff" shuts down the device (no sudo):
+
+```bash
+poweroff
+```
+
 ------------------------------------------------------------------------
 
 ## 🚀 Install PiPhi
