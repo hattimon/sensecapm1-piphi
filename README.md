@@ -618,6 +618,13 @@ balena logs -f piphi-watchdog
 
 ------------------------------------------------------------------------
 
+# Changelog / Zmiany
+
+See [CHANGELOG.md](CHANGELOG.md).
+Zobacz [CHANGELOG.md](CHANGELOG.md).
+
+------------------------------------------------------------------------
+
 # License
 
 [MIT](LICENSE)
