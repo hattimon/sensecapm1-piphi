@@ -412,6 +412,18 @@ Identyfikacja srodowiska:
 lsb_release -a || cat /etc/os-release
 ```
 
+Komenda "reboot" uruchamia ponownie urzadzenie (bez sudo, bo balenaOS dziala jako administrator):
+
+```bash
+reboot
+```
+
+Komenda "poweroff" wylacza urzadzenie (bez sudo):
+
+```bash
+poweroff
+```
+
 ------------------------------------------------------------------------
 
 ## 🚀 Instalacja PiPhi
