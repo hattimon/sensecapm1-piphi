@@ -5,7 +5,7 @@
 ![Hardware](https://img.shields.io/badge/device-SenseCAP%20M1-orange)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-![Flow](img/flow.png)
+![Flow](sensecapm1-piphi/img/flow.png)
 
 Run the **PiPhi network stack** on a **SenseCAP M1** device using **balenaOS** and a **USB GPS module**.
 
