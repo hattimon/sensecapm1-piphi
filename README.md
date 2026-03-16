@@ -652,3 +652,7 @@ Zobacz [CHANGELOG.md](CHANGELOG.md).
 # License
 
 [MIT](LICENSE)
+
+## Support My Work
+If you find this script helpful, consider supporting the project:
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B01KMW5G)
