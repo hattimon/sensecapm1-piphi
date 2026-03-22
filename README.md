@@ -368,6 +368,22 @@ balena logs -f piphi-watchdog
 ------------------------------------------------------------------------
 
 <a id="dokumentacja-po-polsku"></a>
+
+------------------------------------------------------------------------
+
+## ⚡ Wersja PiPhi Light 🆕 NEW ❗❗❗ 22.03.2026
+
+Wersja **PiPhi Light** to minimalny, wysokowydajny instalator dla SenseCAP M1:  
+
+- ✅ Dane runtime: ~41 MB  
+- ✅ Całkowity rozmiar: ~450–600 MB (w tym obrazy Docker)  
+- ✅ Błyskawiczna instalacja (~2 minuty)  
+- ✅ Zero watchdogów, zero nadmiernych obrazów, bezpośrednia instalacja na **balenaOS**  
+
+Po więcej szczegółów zajrzyj do [PiPhi Light README](piphi-light/readme.md).
+
+------------------------------------------------------------------------
+
 # 🇵🇱 Dokumentacja po Polsku
 
 ## ⚙️ Wymagania
