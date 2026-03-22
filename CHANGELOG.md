@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.0.0 - 2026-03-22
+
+### EN
+- Added the PiPhi Light installer for SenseCAP M1 focused on fast deployment and minimal disk usage.
+- New light script, bilingual documentation, and installation images live under `piphi-light/`.
+
+### PL
+- Dodano instalator PiPhi Light dla SenseCAP M1 z naciskiem na szybkie wdrożenie i minimalne zużycie miejsca.
+- Nowy skrypt, dwujęzyczna dokumentacja i grafiki instalacyjne znajdują się w `piphi-light/`.
+
 ## v1.0.0 - 2026-03-15
 
 ### EN
