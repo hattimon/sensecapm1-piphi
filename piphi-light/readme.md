@@ -21,8 +21,6 @@ This **light** version of the installer is optimized for quick deployment of PiP
 
 ### 🚀 Installation
 
-Run the following commands on your device:
-
 ```bash
 mkdir -p /mnt/data/hattimon
 cd /mnt/data/hattimon
@@ -34,36 +32,28 @@ chmod +x sensecapm1-piphi-light.sh
 
 ---
 
-### 🔧 Key Differences
+### 🖥️ Example installation output
 
-Compared to the full setup:
-
-- 📦 Installs **only two containers**:
-  - `postgres:13.3`
-  - `piphinetwork/team-piphi:latest`
-
-- 🐳 Runs containers **directly on balenaOS**
-  - 📁 Data: `/mnt/data/hattimon/piphi`
-  - 🔁 Restart: `--restart=always`
-  - 🌐 Ports:
-    - `5432` → Postgres
-    - `31415` → PiPhi UI
-
-- 🚫 No Watchtower required (managed by balenaEngine)
+![Installation output](screen.png)
 
 ---
 
-### 💾 Disk Usage
+### 💾 Real Disk Usage (Based on actual install)
 
 ```bash
 du -sh /mnt/data/hattimon/piphi/*
 balena system df
 ```
 
-- 🗄️ postgres-data: ~40–80 MB  
-- 📊 tsdb-data: few KB  
-- 📝 logs: few KB  
-- 📦 images: ~300–400 MB  
+Typical real values:
+
+- 🗄️ `postgres-data`: ~41 MB  
+- 📊 `tsdb-data`: ~4 KB  
+- 📝 `logs`: ~4 KB  
+
+⚠️ Note:
+- Total images on system: ~3.6 GB (includes other SenseCAP containers)
+- PiPhi + Postgres images themselves are only a **small part of that**
 
 ---
 
@@ -77,8 +67,6 @@ Lekka wersja instalatora zoptymalizowana pod szybkie wdrożenie PiPhi przy minim
 
 ### 🚀 Instalacja
 
-Uruchom na urządzeniu:
-
 ```bash
 mkdir -p /mnt/data/hattimon
 cd /mnt/data/hattimon
@@ -90,31 +78,27 @@ chmod +x sensecapm1-piphi-light.sh
 
 ---
 
-### 🔧 Różnice
+### 🖥️ Przykładowy wynik instalacji
 
-- 📦 2 kontenery:
-  - `postgres:13.3`
-  - `piphinetwork/team-piphi:latest`
-
-- 🐳 Bez Docker-in-Docker (balenaOS)
-  - 📁 `/mnt/data/hattimon/piphi`
-  - 🔁 `--restart=always`
-  - 🌐 Porty: 5432, 31415
-
-- 🚫 Bez Watchtowera
+![Wynik instalacji](screen_pl.png)
 
 ---
 
-### 💾 Zużycie miejsca
+### 💾 Rzeczywiste zużycie miejsca
 
 ```bash
 du -sh /mnt/data/hattimon/piphi/*
 balena system df
 ```
 
-- 🗄️ postgres-data: ~40–80 MB  
-- 📊 tsdb-data: kilka KB  
-- 📝 logs: kilka KB  
-- 📦 obrazy: ~300–400 MB  
+Rzeczywiste wartości:
+
+- 🗄️ `postgres-data`: ~41 MB  
+- 📊 `tsdb-data`: ~4 KB  
+- 📝 `logs`: ~4 KB  
+
+⚠️ Uwaga:
+- Całkowite obrazy w systemie: ~3.6 GB (zawiera inne kontenery SenseCAP)
+- Same obrazy PiPhi + Postgres to tylko **niewielka część tej wartości**
 
 ---
