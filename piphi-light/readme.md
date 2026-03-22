@@ -59,7 +59,7 @@ The installer will:
 
 Example output during installation:
 
-![Installation output](screen.png)
+![Installation output](img/screen.png)
 
 ------------------------------------------------------------------------
 
@@ -199,7 +199,7 @@ chmod +x sensecapm1-piphi-light.sh
 
 Przykładowy wynik instalacji:
 
-![Wynik instalacji](screen_pl.png)
+![Wynik instalacji](img/screen_pl.png)
 
 ------------------------------------------------------------------------
 
