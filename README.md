@@ -380,7 +380,7 @@ Wersja **PiPhi Light** to minimalny, wysokowydajny instalator dla SenseCAP M1:
 - ✅ Błyskawiczna instalacja (~2 minuty)  
 - ✅ Zero watchdogów, zero nadmiernych obrazów, bezpośrednia instalacja na **balenaOS**  
 
-Po więcej szczegółów zajrzyj do [PiPhi Light README](piphi-light/readme.md).
+Po więcej szczegółów zajrzyj do [PiPhi Light README](piphi-light/readme.md#polish).
 
 ------------------------------------------------------------------------
 
