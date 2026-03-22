@@ -9,11 +9,11 @@
 
 ## 🌍 Language / Język
 
--   🇬🇧 [English](#-english--piphi-light-installer-sensecap-m1)
--   🇵🇱 [Polski](#-polski--instalator-piphi-light-sensecap-m1)
+-   🇬🇧 [English](#english)
+-   🇵🇱 [Polski](#polish)
 
 ------------------------------------------------------------------------
-
+<a id="english"></a>
 ## 🇬🇧 English -- PiPhi Light installer (SenseCAP M1)
 
 ### ⚡ Overview
@@ -156,7 +156,7 @@ This happens because:
 👉 This is **normal behavior on SenseCAP systems**.
 
 ------------------------------------------------------------------------
-
+<a id="polish"></a>
 ## 🇵🇱 Polski -- Instalator PiPhi Light (SenseCAP M1)
 
 ### ⚡ Opis
