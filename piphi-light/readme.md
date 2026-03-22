@@ -1,30 +1,41 @@
-
 # 🌐 PiPhi Light Installer (SenseCAP M1)
 
-> 🚀 Lightweight PiPhi deployment for SenseCAP M1 with minimal disk usage
+> 🚀 Lightweight PiPhi deployment for SenseCAP M1 with minimal disk
+> usage
 
----
+------------------------------------------------------------------------
 
 ## 🌍 Language / Język
 
-- 🇬🇧 [English](#-english--piphi-light-installer-sensecap-m1)
-- 🇵🇱 [Polski](#-polski--instalator-piphi-light-sensecap-m1)
+-   🇬🇧 [English](#-english--piphi-light-installer-sensecap-m1)
+-   🇵🇱 [Polski](#-polski--instalator-piphi-light-sensecap-m1)
 
----
+------------------------------------------------------------------------
 
-## 🇬🇧 English – PiPhi Light installer (SenseCAP M1)
+## 🇬🇧 English -- PiPhi Light installer (SenseCAP M1)
 
 ### ⚡ Overview
 
-This **light installer** allows quick deployment of **PiPhi** on a **SenseCAP M1** device with minimal disk usage and simple installation.
+This **light installer** allows quick deployment of **PiPhi** on a
+**SenseCAP M1** device while keeping disk usage as small as possible.
 
-The goal is to keep the footprint **as small as possible** while maintaining full functionality.
+The goal of this project is:
 
----
+-   ⚡ **Fast installation**
+-   💾 **Minimal disk footprint**
+-   🔧 **Simple maintenance**
+-   📦 **Clean container setup**
+
+The installer automatically prepares the directory structure, downloads
+required images, and starts the containers.
+
+------------------------------------------------------------------------
 
 ### 🚀 Installation
 
-```bash
+Run the following commands directly on your **SenseCAP M1** device:
+
+``` bash
 mkdir -p /mnt/data/hattimon
 cd /mnt/data/hattimon
 
@@ -33,112 +44,145 @@ chmod +x sensecapm1-piphi-light.sh
 ./sensecapm1-piphi-light.sh
 ```
 
----
+The installer will:
+
+1.  Create the required directory structure
+2.  Pull the required Docker images
+3.  Start PiPhi services
+4.  Initialize PostgreSQL storage
+
+------------------------------------------------------------------------
+
+### 🖥️ Example installation output
+
+Example output during installation:
+
+![Installation output](screen.png)
+
+------------------------------------------------------------------------
 
 ### 📊 Real disk usage (measured)
 
 Measured on a **real SenseCAP M1 installation**.
 
-Commands used:
+Commands used for verification:
 
-```bash
+``` bash
 du -sh /mnt/data/hattimon/piphi/*
 balena system df
 ```
 
-#### 📁 Data usage
+#### 📁 Runtime data
 
-```
-postgres-data   ~41 MB
-logs            ~4 KB
-tsdb-data       ~4 KB
-```
+    postgres-data   ~41 MB
+    logs            ~4 KB
+    tsdb-data       ~4 KB
 
-👉 **Total runtime data: ~41 MB**
+👉 **Total runtime data: \~41 MB**
 
----
+These directories contain:
+
+-   **postgres-data** → database storage
+-   **tsdb-data** → time-series metrics storage
+-   **logs** → application logs
+
+------------------------------------------------------------------------
 
 ### 💾 Real installation footprint
 
-| Component | Disk usage |
-|-----------|------------|
-| 📁 Runtime data | ~41 MB |
-| 📦 Docker images | ~400–550 MB |
-| ⚙️ Total footprint | ~450–600 MB |
+  Component            Disk usage
+  -------------------- ---------------
+  📁 Runtime data      \~41 MB
+  📦 Docker images     \~400--550 MB
+  ⚙️ Total footprint   \~450--600 MB
 
-👉 PiPhi only adds **two Docker images**:
+👉 PiPhi installation adds **only two Docker images**:
 
-- PiPhi
-- PostgreSQL
+-   PiPhi container
+-   PostgreSQL container
 
----
+------------------------------------------------------------------------
 
 ### 📦 Docker image changes
 
 Before installation:
 
-```
-ACTIVE images: 7
-```
+    ACTIVE images: 7
 
 After installation:
 
-```
-ACTIVE images: 9
-```
+    ACTIVE images: 9
 
-👉 **+2 images added**
+👉 **+2 images added by PiPhi installer**
 
----
+------------------------------------------------------------------------
 
 ### 🧹 After uninstall
 
 When PiPhi is removed:
 
-- runtime data removed ✅
-- containers removed ✅
-- Docker images remain cached ❗
+-   runtime data removed ✅
+-   containers removed ✅
+-   Docker images may remain cached ❗
 
-Example:
+Example system state:
 
-```
-ACTIVE: 7
-RECLAIMABLE: 2.7 GB
-```
+    ACTIVE: 7
+    RECLAIMABLE: 2.7 GB
 
----
+This means the images are **no longer used but still cached** by the
+container engine.
+
+------------------------------------------------------------------------
 
 ### ⚠️ Important note about balenaEngine
 
-On SenseCAP devices using **balenaEngine**:
+SenseCAP devices use **balenaEngine**, which behaves slightly
+differently than standard Docker.
 
-- Docker images may remain **cached**
-- `balena image prune -f` may **not immediately remove them**
+Important behavior:
 
-This happens because images can be:
+-   Images may remain **cached**
+-   `balena image prune -f` may **not remove them immediately**
+-   Images may be marked as **reclaimable but still stored**
 
-- system-managed
-- referenced by other layers
+This happens because:
 
-👉 This is **normal behavior** on SenseCAP systems.
+-   images may be **system-managed**
+-   layers may be **shared with other containers**
 
-Images become **reclaimable**, but may persist until the engine decides to clean them.
+👉 This is **normal behavior on SenseCAP systems**.
 
----
+------------------------------------------------------------------------
 
-## 🇵🇱 Polski – Instalator PiPhi Light (SenseCAP M1)
+## 🇵🇱 Polski -- Instalator PiPhi Light (SenseCAP M1)
 
 ### ⚡ Opis
 
-Lekka wersja instalatora umożliwia szybkie uruchomienie **PiPhi na SenseCAP M1** przy **minimalnym zużyciu miejsca na dysku**.
+Lekka wersja instalatora umożliwia szybkie wdrożenie **PiPhi na
+urządzeniu SenseCAP M1** przy **minimalnym zużyciu miejsca na dysku**.
 
-Instalator został zaprojektowany tak, aby footprint był **jak najmniejszy**, przy zachowaniu pełnej funkcjonalności.
+Główne cele projektu:
 
----
+-   ⚡ **szybka instalacja**
+-   💾 **minimalny footprint**
+-   🔧 **prosta obsługa**
+-   📦 **czyste środowisko kontenerów**
+
+Instalator automatycznie:
+
+1.  przygotowuje strukturę katalogów
+2.  pobiera wymagane obrazy Docker
+3.  uruchamia kontenery
+4.  inicjalizuje bazę PostgreSQL
+
+------------------------------------------------------------------------
 
 ### 🚀 Instalacja
 
-```bash
+Wykonaj poniższe polecenia na urządzeniu **SenseCAP M1**:
+
+``` bash
 mkdir -p /mnt/data/hattimon
 cd /mnt/data/hattimon
 
@@ -147,68 +191,81 @@ chmod +x sensecapm1-piphi-light.sh
 ./sensecapm1-piphi-light.sh
 ```
 
----
+------------------------------------------------------------------------
+
+### 🖥️ Przykładowy wynik instalacji
+
+Przykładowy wynik instalacji:
+
+![Wynik instalacji](screen_pl.png)
+
+------------------------------------------------------------------------
 
 ### 📊 Rzeczywiste zużycie miejsca (pomiar)
 
 Pomiar wykonany na **rzeczywistej instalacji SenseCAP M1**.
 
-Użyte polecenia:
+Polecenia użyte do pomiaru:
 
-```bash
+``` bash
 du -sh /mnt/data/hattimon/piphi/*
 balena system df
 ```
 
 #### 📁 Dane aplikacji
 
-```
-postgres-data   ~41 MB
-logs            ~4 KB
-tsdb-data       ~4 KB
-```
+    postgres-data   ~41 MB
+    logs            ~4 KB
+    tsdb-data       ~4 KB
 
-👉 **Łączne dane runtime: ~41 MB**
+👉 **Łączne dane runtime: \~41 MB**
 
----
+Katalogi zawierają:
+
+-   **postgres-data** → baza danych
+-   **tsdb-data** → dane metryk
+-   **logs** → logi aplikacji
+
+------------------------------------------------------------------------
 
 ### 💾 Faktyczny footprint instalacji
 
-| Element | Zużycie |
-|--------|--------|
-| 📁 Dane aplikacji | ~41 MB |
-| 📦 Obrazy Docker | ~400–550 MB |
-| ⚙️ Razem | ~450–600 MB |
+  Element             Zużycie
+  ------------------- ---------------
+  📁 Dane aplikacji   \~41 MB
+  📦 Obrazy Docker    \~400--550 MB
+  ⚙️ Razem            \~450--600 MB
 
-👉 Instalacja dodaje tylko **2 obrazy Docker**:
+Instalacja dodaje tylko **2 obrazy Docker**:
 
-- PiPhi
-- PostgreSQL
+-   kontener PiPhi
+-   kontener PostgreSQL
 
----
+------------------------------------------------------------------------
 
 ### 🧹 Po odinstalowaniu
 
 Po usunięciu PiPhi:
 
-- dane aplikacji usunięte ✅
-- kontenery usunięte ✅
-- obrazy Docker pozostają w cache ❗
+-   dane aplikacji usunięte ✅
+-   kontenery usunięte ✅
+-   obrazy Docker mogą pozostać w cache ❗
 
 Przykład:
 
-```
-ACTIVE: 7
-RECLAIMABLE: 2.7 GB
-```
+    ACTIVE: 7
+    RECLAIMABLE: 2.7 GB
 
----
+------------------------------------------------------------------------
 
 ### ⚠️ Uwaga dotycząca balenaEngine
 
-Na urządzeniach SenseCAP korzystających z **balenaEngine**:
+Na urządzeniach SenseCAP używany jest **balenaEngine**.
 
-- obrazy Docker mogą pozostać **w cache**
-- `balena image prune -f` **nie zawsze usuwa je od razu**
+W praktyce oznacza to:
 
-Jest to **normalne zachowanie balenaEngine**.
+-   obrazy Docker mogą pozostać **w cache**
+-   `balena image prune -f` **nie zawsze usuwa je od razu**
+-   obrazy mogą być współdzielone z innymi warstwami systemu
+
+👉 Jest to **normalne zachowanie systemu**.
