@@ -119,6 +119,7 @@ install_piphi() {
     --restart=always \
     -p 31415:31415 \
     --link db:db \
+    --device=/dev/ttyACM0:/dev/ttyACM0 \
     -v "${BASE_DIR}/tsdb-data:/var/lib/piphi/tsdb" \
     -v "${BASE_DIR}/logs:/var/log/piphi" \
     "${PIPHI_IMAGE}"
