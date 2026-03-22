@@ -22,7 +22,7 @@ Przed rozpoczeciem instalacji zapoznaj sie z [SECURITY.md](SECURITY.md) (backup 
 
 ------------------------------------------------------------------------
 
-## ⚡ PiPhi Light Version 🆕 NEW ❗❗❗
+## ⚡ PiPhi Light Version 🆕 NEW ❗❗❗22.03.2026
 
 The **PiPhi Light** version is a minimal, high-performance installer for SenseCAP M1:  
 
