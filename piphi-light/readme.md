@@ -277,5 +277,5 @@ W praktyce oznacza to:
 👉 Jest to **normalne zachowanie systemu**.
 
 ## Wspieraj Moją Pracę
-Jeśli uważasz, że ten skrypt jest pomocny, rozważ wsparcie projektu:
+Jeśli uważasz, że ten skrypt jest pomocny, rozważ wsparcie projektu:    
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B01KMW5G)
