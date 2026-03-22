@@ -3,7 +3,7 @@
 > 🚀 Lightweight PiPhi deployment for SenseCAP M1 with minimal disk
 > usage
 
-![Flow](img/flow-sensecap-piphi-light.png)
+![Flow](piphi-light/img/flow-sensecap-piphi-light.png)
 
 ------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ The installer will:
 
 Example output during installation:
 
-![Installation output](img/screen.png)
+![Installation output](piphi-light/img/screen.png)
 
 ------------------------------------------------------------------------
 
@@ -199,7 +199,7 @@ chmod +x sensecapm1-piphi-light.sh
 
 Przykładowy wynik instalacji:
 
-![Wynik instalacji](img/screen_pl.png)
+![Wynik instalacji](piphi-light/img/screen_pl.png)
 
 ------------------------------------------------------------------------
 
