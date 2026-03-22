@@ -16,6 +16,19 @@ container** that automatically recovers the PiPhi panel.
 
 ------------------------------------------------------------------------
 
+## ⚡ PiPhi Light Version
+
+The **PiPhi Light** version is a minimal, high-performance installer for SenseCAP M1:  
+
+- ✅ Runtime data: ~41 MB  
+- ✅ Total footprint: ~450–600 MB (including Docker images)  
+- ✅ Super fast installation (~2 minutes)  
+- ✅ Zero watchdogs, zero bloated images, direct deployment on **balenaOS**  
+
+For more details, check out the [PiPhi Light README](piphi-light/readme.md).
+
+------------------------------------------------------------------------
+
 ⚠️ **Security notice / Ostrzezenie**   
 Before any installation, read [SECURITY.md](SECURITY.md) for backup and flashing steps.   
 Przed rozpoczeciem instalacji zapoznaj sie z [SECURITY.md](SECURITY.md) (backup i flashowanie).
