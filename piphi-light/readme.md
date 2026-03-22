@@ -155,6 +155,10 @@ This happens because:
 
 👉 This is **normal behavior on SenseCAP systems**.
 
+## Support My Work
+If you find this script helpful, consider supporting the project:
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B01KMW5G)
+
 ------------------------------------------------------------------------
 <a id="polish"></a>
 ## 🇵🇱 Polski -- Instalator PiPhi Light (SenseCAP M1)
@@ -271,3 +275,7 @@ W praktyce oznacza to:
 -   obrazy mogą być współdzielone z innymi warstwami systemu
 
 👉 Jest to **normalne zachowanie systemu**.
+
+## Wspieraj Moją Pracę
+Jeśli uważasz, że ten skrypt jest pomocny, rozważ wsparcie projektu:
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B01KMW5G)
