@@ -16,6 +16,12 @@ container** that automatically recovers the PiPhi panel.
 
 ------------------------------------------------------------------------
 
+⚠️ **Security notice / Ostrzezenie**   
+Before any installation, read [SECURITY.md](SECURITY.md) for backup and flashing steps.   
+Przed rozpoczeciem instalacji zapoznaj sie z [SECURITY.md](SECURITY.md) (backup i flashowanie).
+
+------------------------------------------------------------------------
+
 ## ⚡ PiPhi Light Version 🆕 NEW ❗❗❗
 
 The **PiPhi Light** version is a minimal, high-performance installer for SenseCAP M1:  
@@ -26,12 +32,6 @@ The **PiPhi Light** version is a minimal, high-performance installer for SenseCA
 - ✅ Zero watchdogs, zero bloated images, direct deployment on **balenaOS**  
 
 For more details, check out the [PiPhi Light README](piphi-light/readme.md).
-
-------------------------------------------------------------------------
-
-⚠️ **Security notice / Ostrzezenie**   
-Before any installation, read [SECURITY.md](SECURITY.md) for backup and flashing steps.   
-Przed rozpoczeciem instalacji zapoznaj sie z [SECURITY.md](SECURITY.md) (backup i flashowanie).
 
 ------------------------------------------------------------------------
 
