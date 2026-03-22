@@ -16,7 +16,7 @@ container** that automatically recovers the PiPhi panel.
 
 ------------------------------------------------------------------------
 
-## ⚡ PiPhi Light Version
+## ⚡ PiPhi Light Version 🆕 NEW ❗❗❗
 
 The **PiPhi Light** version is a minimal, high-performance installer for SenseCAP M1:  
 
