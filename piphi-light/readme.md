@@ -3,6 +3,8 @@
 > 🚀 Lightweight PiPhi deployment for SenseCAP M1 with minimal disk
 > usage
 
+![Flow](img/flow-sensecap-piphi-light.png)
+
 ------------------------------------------------------------------------
 
 ## 🌍 Language / Język
