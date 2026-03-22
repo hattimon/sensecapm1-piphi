@@ -365,6 +365,10 @@ Logs:
 balena logs -f piphi-watchdog
 ```
 
+## Support My Work
+If you find this script helpful, consider supporting the project:    
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B01KMW5G)
+
 ------------------------------------------------------------------------
 
 <a id="dokumentacja-po-polsku"></a>
@@ -682,6 +686,6 @@ Zobacz [CHANGELOG.md](CHANGELOG.md).
 
 [MIT](LICENSE)
 
-## Support My Work
-If you find this script helpful, consider supporting the project:
+## Wspieraj Moją Pracę
+Jeśli uważasz, że ten skrypt jest pomocny, rozważ wsparcie projektu:    
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B0B01KMW5G)
